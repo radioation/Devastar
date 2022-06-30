@@ -6,6 +6,7 @@
 
 int main()
 {
+	// setup board 
 	int calibrationFlags = 0;
 	float aspectRatio = 1.0f;
 	int xSquares = 10;
@@ -15,32 +16,29 @@ int main()
 	float squareLength = 0.015f;
 	float markerLength = 0.010f;
 
+	// create aruco dictionary
 	auto dictionary = cv::aruco::getPredefinedDictionary( cv::aruco::DICT_4X4_50 );
 
-	cv::Ptr< cv::aruco::DetectorParameters > detectorParams = cv::aruco::DetectorParameters::create();                         
+	// make default params
+	cv::Ptr< cv::aruco::DetectorParameters > detectorParams = cv::aruco::DetectorParameters::create(); 
 
 	// create charuco board object
-	cv::Ptr<cv::aruco::CharucoBoard> charucoboard =
-		cv::aruco::CharucoBoard::create(xSquares, ySquares, squareLength, markerLength, dictionary);
+	cv::Ptr<cv::aruco::CharucoBoard> charucoboard = cv::aruco::CharucoBoard::create(xSquares, ySquares, squareLength, markerLength, dictionary);
 	cv::Ptr<cv::aruco::Board> board = charucoboard.staticCast<cv::aruco::Board>();
 
+	// make calibration variables
+	std::vector< std::vector< std::vector< cv::Point2f > > > allCorners; std::vector< std::vector< int > > allIds;
+	std::vector< cv::Mat > allImgs;
+	cv::Size imgSize;
 
-	// get camera and show charuco                                                                                             
-	// create charuco board object                                                                                             
-
-	// collect data from each frame                                                                                            
-	std::vector< std::vector< std::vector< cv::Point2f > > > allCorners;                                                       
-	std::vector< std::vector< int > > allIds;                                                                                  
-	std::vector< cv::Mat > allImgs;                                                                                            
-	cv::Size imgSize;                                                                                                          
-	cv::VideoCapture inputVideo;                                                                                               
-	inputVideo.open(0);   
+	// get camera 
+	cv::VideoCapture inputVideo; 
+	inputVideo.open(0); 
 	inputVideo.set( cv::CAP_PROP_FRAME_WIDTH, 1024);
 	inputVideo.set( cv::CAP_PROP_FRAME_HEIGHT, 720);
-	std::cout << "width: " << inputVideo.get( cv::CAP_PROP_FRAME_WIDTH) << "\n";
-	std::cout << "height: " << inputVideo.get( cv::CAP_PROP_FRAME_HEIGHT) << "\n";
 
 
+	// start grabbing images
 	while (inputVideo.grab()) {
 		cv::Mat image, imageCopy;
 		inputVideo.retrieve(image);
@@ -51,15 +49,17 @@ int main()
 		// detect markers
 		cv::aruco::detectMarkers(image, dictionary, corners, ids, detectorParams, rejected);
 
+		// refine them for beter calibration
 		cv::aruco::refineDetectedMarkers(image, board, corners, ids, rejected);
 
 		// interpolate charuco corners
 		cv::Mat currentCharucoCorners, currentCharucoIds;
-		if (ids.size() > 0)
+		if (ids.size() > 0) {
 			cv::aruco::interpolateCornersCharuco(corners, ids, image, charucoboard, currentCharucoCorners,
 					currentCharucoIds);
+		}
 
-		// draw results
+		// draw markers on image
 		image.copyTo(imageCopy);
 		if (ids.size() > 0) {
 			cv::aruco::drawDetectedMarkers(imageCopy, corners);
@@ -69,17 +69,24 @@ int main()
 			cv::aruco::drawDetectedCornersCharuco(imageCopy, currentCharucoCorners, currentCharucoIds);
 		}
 
-		cv::putText(imageCopy, "Press 'c' to add current frame. 'ESC' to finish and calibrate",
-				cv::Point(10, 20), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 0, 0), 2);
+		cv::putText(imageCopy, "Press 'a' to add current frame.",
+				cv::Point(12, 20), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 0), 1);
+		cv::putText(imageCopy, "Press 'c' to calibrate and exit.",
+				cv::Point(12, 40), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 0), 1);
+		cv::putText(imageCopy, "Press 'ESC to quit without calibrating.",
+				cv::Point(12, 60), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 0), 1);
 
 		imshow("out", imageCopy);
 		char key = (char)cv::waitKey(1);
-		if (key == 27) {
-			std::cout << "image.col " << image.cols << " image.rows " << image.rows << std::endl;
+		if (key == 27 ){
+			std::cout << "Quit!" << std::endl;
+			exit(0);
+		}
+		if (key == 'q' ) {
 			break;
 		}
-		if (key == 'c' && ids.size() > 0) {
-			std::cout << "Frame tured" << std::endl;
+		if (key == 'a' && ids.size() > 0) {
+			std::cout << "Added Frame" << std::endl;
 			allCorners.push_back(corners);
 			allIds.push_back(ids);
 			allImgs.push_back(image);
@@ -152,14 +159,6 @@ int main()
 	repError = cv::aruco::calibrateCameraCharuco(allCharucoCorners, allCharucoIds, charucoboard, imgSize,
 			cameraMatrix, distCoeffs, rvecs, tvecs, calibrationFlags);
 
-	/*
-	   bool saveOk =  saveCameraParams(outputFile, imgSize, aspectRatio, calibrationFlags,
-	   cameraMatrix, distCoeffs, repError);
-	   if(!saveOk) {
-	   std::cerr << "Cannot save output file" << std::endl;
-	   return 0;
-	   }
-	   */
 
 	std::cout << "Rep Error: " << repError << std::endl;
 	std::cout << "Rep Error Aruco: " << arucoRepErr << std::endl;
