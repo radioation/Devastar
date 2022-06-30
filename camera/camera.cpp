@@ -67,13 +67,15 @@ int main()
 	inputVideo.set(cv::CAP_PROP_FRAME_HEIGHT, 720);
 
 
-	// Setup world points
-	float width = 1700.0f
-	float height = 790.0f
+	// Setup object points
+	float width = 1700.0f;
+	float height = 790.0f;
+	std::vector<cv::Point3f> worldPoints;
 	worldPoints.push_back(cv::Point3f(0, 0, 0));
 	worldPoints.push_back(cv::Point3f(width, 0, 0));
 	worldPoints.push_back(cv::Point3f(0, height, 0));
 	worldPoints.push_back(cv::Point3f(width, height, 0));
+	// setup rectangle for intersection test
 	cv::Vec3f S1, S2, P0;
 	P0[0] = worldPoints[0].x;
 	P0[1] = worldPoints[0].y;
@@ -90,37 +92,40 @@ int main()
 	S2 = cv::normalize(S2);
 
 
-	std::vector<cv::Point2f> curr2d;
-	curr2d.resize(4);
+	std::vector<cv::Point2f> centers;
+	centers.resize(4);
 
-	std::cout << "setup memory storgae" << std::endl;
-	std::vector< std::vector< cv::Point2f> > corners, rejected;
-	cv::Point2f UL, UR, LR, LL;
-	std::cout << "Start loop" << std::endl;
-	while (inputVideo.grab()) {
-		cv::Mat image;
-		inputVideo.retrieve(image);
 
-		if (ids.size() == 4) {
-			// get points
-			for (int i = 0; i < 4; ++i) {
-				if (ids[i] == 0) {
-					// set  upper left corner
-					curr2d[0] = corners[i][2];
-				}
-				else if (ids[i] == 1) {
-					curr2d[1] = corners[i][3];
-				}
-				else if (ids[i] == 2) {
-					curr2d[2] = corners[i][1];
-				}
-				else if (ids[i] == 3) {
-					curr2d[3] = corners[i][0];
-				}
+	cv::Mat frame;
+	cv::Mat gray;
+	cv::Mat thresh;
+	while (true){
+		inputVideo >> frame;
+
+		// cv to grey
+		cv::cvtColor( frame, gray, cv::COLOR_BGR2GRAY); 
+
+		// threshold
+		cv::threshold( gray, thresh, 200, 255, cv::THRESH_BINARY);
+		std::vector< std::vector< cv::Point> > contours;
+
+		cv::findContours( thresh, contours, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
+
+		if (contours.size() >= 4) {
+			// compute moments
+			std::vector< cv::Moments > moments( contours.size() );
+			for( size_t i = 0; i < contours.size(); ++i ) {
+				moments[i] = cv::moments( contours[i] );
 			}
+
+			for( size_t i = 0; i < 4; ++i ) { 
+				centers[i] =  cv::Point2f( static_cast<float> ( moments[i].m10 / ( moments[i].m00 + 1e-5)), static_cast<float> ( moments[i].m01 / ( moments[i].m00 + 1e-5)) );
+				//std::cout << "center["<<i<<"] = " << centers[i] <<  " area: " << moments[i].m00 <<std::endl;
+			}
+
 			// we have 
 			cv::Mat rvec, tvec;
-			cv::solvePnP(worldPoints, curr2d, cameraMatrix, distCoeffs, rvec, tvec, false, cv::SOLVEPNP_AP3P);
+			cv::solvePnP(worldPoints, centers, cameraMatrix, distCoeffs, rvec, tvec, false, cv::SOLVEPNP_AP3P);
 			// rvec- is the rotation vector
 			std::cout << "rvec: " << rvec << std::endl;	
 			// tvec- is the translation vector 
@@ -133,7 +138,7 @@ int main()
 			R = R.t(); // inverse
 			tvec = -R * tvec; // translation of inverseA == actual camera position
 			std::cout << "inverse tvec: " << tvec << std::endl;
-		
+
 
 			// do intersection
 			cv::Vec3f R1,D;
@@ -154,17 +159,15 @@ int main()
 
 			// compute itersection
 			float u, v;
-			hit = intersectRect(R1, D, P0, S1, S2, width, height, u, v);
+			bool hit = intersectRect(R1, D, P0, S1, S2, width, height, u, v);
 			std::cout << "U: " << u << " V: " << v << std::endl;
-			hitX = u / 1000.0f;
-			hitY = v / 1000.0f;
+			if( hit ) {
+				// TODO: send coordinates to arduino
+			}
 
-		}
-		else {
-			hit = false;
-		}
+		} 
+		// send -1, -1 to arduino
 
-		// TODO: send coordinates to arduino
 
 	}
 
