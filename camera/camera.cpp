@@ -165,9 +165,9 @@ int main()
 				// TODO: send coordinates to arduino
 			}
 
-		} 
-		// send -1, -1 to arduino
-
+		} else {
+			// send -1, -1 to arduino
+		}
 
 	}
 
