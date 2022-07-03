@@ -7,7 +7,20 @@
 #include <iostream>
 #include <vector>
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <termios.h>
 
+#define BUFFER_SIZE 64
+#define BAUDRATE B38400            
+#define SERIAL_DEVICE "/dev/ttyACM0"
+
+#define SHOW_IMAGE
+#define SHOW_CALC
 
 // intersect rectangle with a ray
 // * Ray is defined as R0 + t * D
@@ -58,8 +71,6 @@ int main()
 	fs["dist_coeffs"] >> distCoeffs;
 
 
-
-
 	// setup videocapture
 	cv::VideoCapture inputVideo;
 	inputVideo.open(0);
@@ -92,13 +103,47 @@ int main()
 	S2 = cv::normalize(S2);
 
 
+	// setup serial communication
+	struct termios serial;
+	char buffer[BUFFER_SIZE];
+
+	// not controlling TTY.  
+	int fd = open( SERIAL_DEVICE, O_RDWR | O_NOCTTY | O_NDELAY);
+	if( fd < 0 ) {
+		std::cerr << "Unable to open serial" << std::endl;
+		perror( SERIAL_DEVICE );
+		return -1;
+	}
+	auto result = tcgetattr( fd, & serial );
+	if( result < 0 ) {
+		std::cerr << "Unable to get serial attributes" << std::endl;
+		return -1;
+	}
+
+	// Set up Serial Configuration
+	cfmakeraw(&serial);
+	
+	serial.c_cflag |= (CLOCAL | CREAD);
+	serial.c_iflag &= ~(IXOFF | IXANY);
+
+	serial.c_cc[VMIN] = 0;
+	serial.c_cc[VTIME] = 0;
+
+	cfsetispeed(&serial, B9600);
+	cfsetospeed(&serial, B9600);
+
+	tcsetattr(fd, TCSANOW, &serial); // Apply configuration	
+
+	// setup processing variables
 	std::vector<cv::Point2f> centers;
 	centers.resize(4);
-
-
 	cv::Mat frame;
 	cv::Mat gray;
 	cv::Mat thresh;
+	const unsigned char offscreen[] = { 0xFF, 0xFF };
+	unsigned char xy[2];
+
+	// look at the cmameras
 	while (true){
 		inputVideo >> frame;
 
@@ -111,36 +156,47 @@ int main()
 
 		cv::findContours( thresh, contours, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
 
+		// compute moments
+		std::vector< cv::Moments > moments( contours.size() );
+		for( size_t i = 0; i < contours.size(); ++i ) {
+			moments[i] = cv::moments( contours[i] );
+		}
+
+		for( size_t i = 0; i < 4; ++i ) { 
+			centers[i] =  cv::Point2f( static_cast<float> ( moments[i].m10 / ( moments[i].m00 + 1e-5)), static_cast<float> ( moments[i].m01 / ( moments[i].m00 + 1e-5)) );
+#ifdef SHOW_CALC
+			std::cout << "center["<<i<<"] = " << centers[i] <<  " area: " << moments[i].m00 <<std::endl;
+#endif
+		}
+
+#ifdef SHOW_IMAGE
+		cv::Mat displayCopy;
+		frame.copyTo( displayCopy );
+		for( const auto& center : centers ) {
+			// draw point on image
+			cv::circle( displayCopy, center, 1.0f, cv::Scalar(0.0,1.0f,1.0f), 1.0f);
+		}
+
+		// display it
+		cv::imshow("points", displayCopy );
+		cv::waitKey(1);
+#endif
 		if (contours.size() >= 4) {
-			// compute moments
-			std::vector< cv::Moments > moments( contours.size() );
-			for( size_t i = 0; i < contours.size(); ++i ) {
-				moments[i] = cv::moments( contours[i] );
-			}
-
-			for( size_t i = 0; i < 4; ++i ) { 
-				centers[i] =  cv::Point2f( static_cast<float> ( moments[i].m10 / ( moments[i].m00 + 1e-5)), static_cast<float> ( moments[i].m01 / ( moments[i].m00 + 1e-5)) );
-				//std::cout << "center["<<i<<"] = " << centers[i] <<  " area: " << moments[i].m00 <<std::endl;
-			}
-
-			// we have 
+			
+			// rvec- is the rotation vector
+			// tvec- is the translation vector 
 			cv::Mat rvec, tvec;
 			cv::solvePnP(worldPoints, centers, cameraMatrix, distCoeffs, rvec, tvec, false, cv::SOLVEPNP_AP3P);
-			// rvec- is the rotation vector
-			std::cout << "rvec: " << rvec << std::endl;	
-			// tvec- is the translation vector 
-			std::cout << "tvec: " << tvec << std::endl;
 
 
 			cv::Mat R;
 			cv::Rodrigues(rvec, R); // get rotation matrix R ( 3x3 ) from rotation vector 
-			std::cout << "R: " << R << std::endl;
 			R = R.t(); // inverse
 			tvec = -R * tvec; // translation of inverseA == actual camera position
-			std::cout << "inverse tvec: " << tvec << std::endl;
 
 
-			// do intersection
+
+			// compute itersection
 			cv::Vec3f R1,D;
 			R1[0] = tvec.at<double>(0);
 			R1[1] = tvec.at<double>(1);
@@ -150,6 +206,14 @@ int main()
 			D[1] =   R.at<double>(1, 2);
 			D[2] =   R.at<double>(2, 2);
 
+			float u, v;
+			bool hit = intersectRect(R1, D, P0, S1, S2, width, height, u, v);
+
+#ifdef SHOW_IMAGE
+			std::cout << "rvec: " << rvec << std::endl;	
+			std::cout << "tvec: " << tvec << std::endl;
+			std::cout << "R: " << R << std::endl;
+			std::cout << "inverse tvec: " << tvec << std::endl;
 
 			std::cout << "R: " << R << std::endl;
 			std::cout << "D: " << D << std::endl;
@@ -157,17 +221,24 @@ int main()
 			std::cout << "S1: " << S1 << std::endl;
 			std::cout << "S2: " << S2 << std::endl;
 
-			// compute itersection
-			float u, v;
-			bool hit = intersectRect(R1, D, P0, S1, S2, width, height, u, v);
 			std::cout << "U: " << u << " V: " << v << std::endl;
+#endif
+
 			if( hit ) {
-				// TODO: send coordinates to arduino
+				// from obvservation with delay4Cycles() on arduion
+				// X range is 73 to 269 : send 0 through 196
+				// Y range is 30 to 250 : send 0 through 220
+
+				xy[0] = (unsigned char)( ( u / width) * 196.0f  );
+				xy[1] = (unsigned char)( ( v / height) * 196.0f  );
+				auto ret = write( fd, xy, 2 );
+			
+				continue;
 			}
 
-		} else {
-			// send -1, -1 to arduino
-		}
+		} 
+		// send -1, -1 to arduino
+		auto ret = write( fd, offscreen, 2 );
 
 	}
 
