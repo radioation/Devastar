@@ -140,6 +140,7 @@ int main()
 	cv::Mat frame;
 	cv::Mat gray;
 	cv::Mat thresh;
+       	cv::Mat displayCopy;
 	const unsigned char offscreen[] = { 0xFF, 0xFF };
 	unsigned char xy[2];
 
@@ -156,33 +157,35 @@ int main()
 
 		cv::findContours( thresh, contours, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
 
-		// compute moments
-		std::vector< cv::Moments > moments( contours.size() );
-		for( size_t i = 0; i < contours.size(); ++i ) {
-			moments[i] = cv::moments( contours[i] );
-		}
+		if (contours.size() >= 4) {
+			// compute moments to get centers.  
+			std::vector< cv::Moments > moments( contours.size() );
+			for( size_t i = 0; i < contours.size(); ++i ) {
+				moments[i] = cv::moments( contours[i] );
+			}
 
-		for( size_t i = 0; i < 4; ++i ) { 
-			centers[i] =  cv::Point2f( static_cast<float> ( moments[i].m10 / ( moments[i].m00 + 1e-5)), static_cast<float> ( moments[i].m01 / ( moments[i].m00 + 1e-5)) );
+			// TODO: add code to keep the 4 "best" contours. Probably look at circularity and size
+			for( size_t i = 0; i < 4; ++i ) { 
+				centers[i] =  cv::Point2f( static_cast<float> ( moments[i].m10 / ( moments[i].m00 + 1e-5)), static_cast<float> ( moments[i].m01 / ( moments[i].m00 + 1e-5)) );
 #ifdef SHOW_CALC
-			std::cout << "center["<<i<<"] = " << centers[i] <<  " area: " << moments[i].m00 <<std::endl;
+				std::cout << "center["<<i<<"] = " << centers[i] <<  " area: " << moments[i].m00 <<std::endl;
 #endif
-		}
+			}
 
 #ifdef SHOW_IMAGE
-		cv::Mat displayCopy;
-		frame.copyTo( displayCopy );
-		for( const auto& center : centers ) {
-			// draw point on image
-			cv::circle( displayCopy, center, 1.0f, cv::Scalar(0.0,1.0f,1.0f), 1.0f);
-		}
+			// display it
+			cv::cvtColor( thresh, displayCopy, cv::COLOR_GRAY2BGR); 
+			for( const auto& center : centers ) {
+				// draw point on image
+				cv::circle( displayCopy, center, 3.0f, cv::Scalar(0,0,255), 2.0f);
+			}
 
-		// display it
-		cv::imshow("points", displayCopy );
-		cv::waitKey(1);
+			cv::imshow("points", displayCopy );
+			cv::waitKey(1);
 #endif
-		if (contours.size() >= 4) {
-			
+
+			/*
+
 			// rvec- is the rotation vector
 			// tvec- is the translation vector 
 			cv::Mat rvec, tvec;
@@ -210,31 +213,32 @@ int main()
 			bool hit = intersectRect(R1, D, P0, S1, S2, width, height, u, v);
 
 #ifdef SHOW_IMAGE
-			std::cout << "rvec: " << rvec << std::endl;	
-			std::cout << "tvec: " << tvec << std::endl;
-			std::cout << "R: " << R << std::endl;
-			std::cout << "inverse tvec: " << tvec << std::endl;
+std::cout << "rvec: " << rvec << std::endl;	
+std::cout << "tvec: " << tvec << std::endl;
+std::cout << "R: " << R << std::endl;
+std::cout << "inverse tvec: " << tvec << std::endl;
 
-			std::cout << "R: " << R << std::endl;
-			std::cout << "D: " << D << std::endl;
-			std::cout << "P0: " << P0 << std::endl;
-			std::cout << "S1: " << S1 << std::endl;
-			std::cout << "S2: " << S2 << std::endl;
+std::cout << "R: " << R << std::endl;
+std::cout << "D: " << D << std::endl;
+std::cout << "P0: " << P0 << std::endl;
+std::cout << "S1: " << S1 << std::endl;
+std::cout << "S2: " << S2 << std::endl;
 
-			std::cout << "U: " << u << " V: " << v << std::endl;
+std::cout << "U: " << u << " V: " << v << std::endl;
 #endif
 
-			if( hit ) {
-				// from obvservation with delay4Cycles() on arduion
-				// X range is 73 to 269 : send 0 through 196
-				// Y range is 30 to 250 : send 0 through 220
+if( hit ) {
+			// from obvservation with delay4Cycles() on arduion
+			// X range is 73 to 269 : send 0 through 196
+			// Y range is 30 to 250 : send 0 through 220
 
-				xy[0] = (unsigned char)( ( u / width) * 196.0f  );
-				xy[1] = (unsigned char)( ( v / height) * 196.0f  );
-				auto ret = write( fd, xy, 2 );
-			
-				continue;
+			xy[0] = (unsigned char)( ( u / width) * 196.0f  );
+			xy[1] = (unsigned char)( ( v / height) * 196.0f  );
+			auto ret = write( fd, xy, 2 );
+
+			continue;
 			}
+			*/
 
 		} 
 		// send -1, -1 to arduino
