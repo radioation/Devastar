@@ -164,12 +164,20 @@ int main()
 				moments[i] = cv::moments( contours[i] );
 			}
 
-			// TODO: add code to keep the 4 "best" contours. Probably look at circularity and size
-			for( size_t i = 0; i < 4; ++i ) { 
-				centers[i] =  cv::Point2f( static_cast<float> ( moments[i].m10 / ( moments[i].m00 + 1e-5)), static_cast<float> ( moments[i].m01 / ( moments[i].m00 + 1e-5)) );
+			//for( size_t i = 0; i < 4; ++i ) { 
+			int current = 0;
+			for( size_t i = 0; i < contours.size(); ++i ) {
+				// using size cutoff to find 'good' candidates.  Look at other features like circularity, position, etc.
+				if( moments[i].m00 > 50 && moments[i].m00 < 250 ) {
+					centers[current] =  cv::Point2f( static_cast<float> ( moments[i].m10 / ( moments[i].m00 + 1e-5)), static_cast<float> ( moments[i].m01 / ( moments[i].m00 + 1e-5)) );
 #ifdef SHOW_CALC
-				std::cout << "center["<<i<<"] = " << centers[i] <<  " area: " << moments[i].m00 <<std::endl;
+				std::cout << "center[" << current << "] = " << centers[current] <<  " area: " << moments[i].m00 <<std::endl;
 #endif
+					++current;
+					if( current == 4 ) {
+						break;
+					}
+				}
 			}
 
 #ifdef SHOW_IMAGE
@@ -212,7 +220,7 @@ int main()
 			float u, v;
 			bool hit = intersectRect(R1, D, P0, S1, S2, width, height, u, v);
 
-#ifdef SHOW_IMAGE
+#ifdef SHOW_CALC
 std::cout << "rvec: " << rvec << std::endl;	
 std::cout << "tvec: " << tvec << std::endl;
 std::cout << "R: " << R << std::endl;
