@@ -79,8 +79,8 @@ int main()
 
 
 	// Setup object points
-	float width = 1700.0f;
-	float height = 790.0f;
+	float width = 510.0f;
+	float height = 260.0f;
 	std::vector<cv::Point3f> worldPoints;
 	worldPoints.push_back(cv::Point3f(0, 0, 0));
 	worldPoints.push_back(cv::Point3f(width, 0, 0));
@@ -146,7 +146,7 @@ int main()
 
 	// look at the cmameras
 	cv::Point2f pt;
-	while (true){
+	while (true) {
 		inputVideo >> frame;
 
 		// cv to grey
@@ -156,8 +156,10 @@ int main()
 		cv::threshold( gray, thresh, 200, 255, cv::THRESH_BINARY);
 		std::vector< std::vector< cv::Point> > contours;
 
+		// look for IR lights
 		cv::findContours( thresh, contours, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
 
+		// process if we have at least 4 points
 		if (contours.size() >= 4) {
 			// compute moments to get centers.  
 			std::vector< cv::Moments > moments( contours.size() );
@@ -165,15 +167,14 @@ int main()
 				moments[i] = cv::moments( contours[i] );
 			}
 
-			//for( size_t i = 0; i < 4; ++i ) { 
 			int current = 0;
 			for( size_t i = 0; i < contours.size(); ++i ) {
 				// using size cutoff to find 'good' candidates.  Look at other features like circularity, position, etc.
 				if( moments[i].m00 > 6 && moments[i].m00 < 250 ) {
 					centers[current] =  cv::Point2f( static_cast<float> ( moments[i].m10 / ( moments[i].m00 + 1e-5)), static_cast<float> ( moments[i].m01 / ( moments[i].m00 + 1e-5)) );
-//#ifdef SHOW_CALC
+					//#ifdef SHOW_CALC
 					std::cout << "center[" << current << "] = " << centers[current] <<  " area: " << moments[i].m00 <<std::endl;
-//#endif
+					//#endif
 					++current;
 					if( current == 4 ) {
 						break;
@@ -198,15 +199,13 @@ int main()
 			// rvec- is the rotation vector
 			// tvec- is the translation vector 
 			cv::Mat rvec, tvec;
-			auto solveRet = cv::solvePnP(worldPoints, centers, cameraMatrix, distCoeffs, rvec, tvec, false); //, cv::SOLVEPNP_AP3P);
+			auto solveRet = cv::solvePnP(worldPoints, centers, cameraMatrix, distCoeffs, rvec, tvec, false, cv::SOLVEPNP_AP3P);
 
 			if( solveRet ) {
 				cv::Mat R;
 				cv::Rodrigues(rvec, R); // get rotation matrix R ( 3x3 ) from rotation vector 
 				R = R.t(); // inverse
 				tvec = -R * tvec; // translation of inverseA == actual camera position
-
-
 
 				// compute itersection
 				cv::Vec3f R1,D;
@@ -251,18 +250,15 @@ int main()
 					xy[0] = (unsigned char)( ( u / width) * 196.0f  );
 					xy[1] = (unsigned char)( ( v / height) * 196.0f  );
 					auto ret = write( fd, xy, 2 );
+					continue;  // head back up the loop
+				} // if( hit ) 
+			} // if( solveRet ) 
 
-					continue;
-				}
-			}
 
+		} // if (contours.size() >= 4) 
 
-		} 
 		// send -1, -1 to arduino
 		auto ret = write( fd, offscreen, 2 );
 
-		}
-
-
-
-	}
+	}// while(true)
+}
