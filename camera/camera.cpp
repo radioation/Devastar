@@ -122,7 +122,7 @@ int main()
 
 	// Set up Serial Configuration
 	cfmakeraw(&serial);
-	
+
 	serial.c_cflag |= (CLOCAL | CREAD);
 	serial.c_iflag &= ~(IXOFF | IXANY);
 
@@ -140,7 +140,7 @@ int main()
 	cv::Mat frame;
 	cv::Mat gray;
 	cv::Mat thresh;
-       	cv::Mat displayCopy;
+	cv::Mat displayCopy;
 	const unsigned char offscreen[] = { 0xFF, 0xFF };
 	unsigned char xy[2];
 
@@ -171,7 +171,7 @@ int main()
 				if( moments[i].m00 > 50 && moments[i].m00 < 250 ) {
 					centers[current] =  cv::Point2f( static_cast<float> ( moments[i].m10 / ( moments[i].m00 + 1e-5)), static_cast<float> ( moments[i].m01 / ( moments[i].m00 + 1e-5)) );
 #ifdef SHOW_CALC
-				std::cout << "center[" << current << "] = " << centers[current] <<  " area: " << moments[i].m00 <<std::endl;
+					std::cout << "center[" << current << "] = " << centers[current] <<  " area: " << moments[i].m00 <<std::endl;
 #endif
 					++current;
 					if( current == 4 ) {
@@ -192,67 +192,67 @@ int main()
 			cv::waitKey(1);
 #endif
 
-			/*
 
 			// rvec- is the rotation vector
 			// tvec- is the translation vector 
 			cv::Mat rvec, tvec;
-			cv::solvePnP(worldPoints, centers, cameraMatrix, distCoeffs, rvec, tvec, false, cv::SOLVEPNP_AP3P);
+			auto solveRet = cv::solvePnP(worldPoints, centers, cameraMatrix, distCoeffs, rvec, tvec, false, cv::SOLVEPNP_AP3P);
+
+			if( solveRet ) {
+				cv::Mat R;
+				cv::Rodrigues(rvec, R); // get rotation matrix R ( 3x3 ) from rotation vector 
+				R = R.t(); // inverse
+				tvec = -R * tvec; // translation of inverseA == actual camera position
 
 
-			cv::Mat R;
-			cv::Rodrigues(rvec, R); // get rotation matrix R ( 3x3 ) from rotation vector 
-			R = R.t(); // inverse
-			tvec = -R * tvec; // translation of inverseA == actual camera position
 
+				// compute itersection
+				cv::Vec3f R1,D;
+				R1[0] = tvec.at<double>(0);
+				R1[1] = tvec.at<double>(1);
+				R1[2] = tvec.at<double>(2);
 
+				D[0] =   R.at<double>(0, 2);
+				D[1] =   R.at<double>(1, 2);
+				D[2] =   R.at<double>(2, 2);
 
-			// compute itersection
-			cv::Vec3f R1,D;
-			R1[0] = tvec.at<double>(0);
-			R1[1] = tvec.at<double>(1);
-			R1[2] = tvec.at<double>(2);
-
-			D[0] =   R.at<double>(0, 2);
-			D[1] =   R.at<double>(1, 2);
-			D[2] =   R.at<double>(2, 2);
-
-			float u, v;
-			bool hit = intersectRect(R1, D, P0, S1, S2, width, height, u, v);
+				float u, v;
+				bool hit = intersectRect(R1, D, P0, S1, S2, width, height, u, v);
 
 #ifdef SHOW_CALC
-std::cout << "rvec: " << rvec << std::endl;	
-std::cout << "tvec: " << tvec << std::endl;
-std::cout << "R: " << R << std::endl;
-std::cout << "inverse tvec: " << tvec << std::endl;
+				std::cout << "rvec: " << rvec << std::endl;	
+				std::cout << "tvec: " << tvec << std::endl;
+				std::cout << "R: " << R << std::endl;
+				std::cout << "inverse tvec: " << tvec << std::endl;
 
-std::cout << "R: " << R << std::endl;
-std::cout << "D: " << D << std::endl;
-std::cout << "P0: " << P0 << std::endl;
-std::cout << "S1: " << S1 << std::endl;
-std::cout << "S2: " << S2 << std::endl;
+				std::cout << "R: " << R << std::endl;
+				std::cout << "D: " << D << std::endl;
+				std::cout << "P0: " << P0 << std::endl;
+				std::cout << "S1: " << S1 << std::endl;
+				std::cout << "S2: " << S2 << std::endl;
 
-std::cout << "U: " << u << " V: " << v << std::endl;
+				std::cout << "U: " << u << " V: " << v << std::endl;
 #endif
 
-if( hit ) {
-			// from obvservation with delay4Cycles() on arduion
-			// X range is 73 to 269 : send 0 through 196
-			// Y range is 30 to 250 : send 0 through 220
+				if( hit ) {
+					// from obvservation with delay4Cycles() on arduion
+					// X range is 73 to 269 : send 0 through 196
+					// Y range is 30 to 250 : send 0 through 220
 
-			xy[0] = (unsigned char)( ( u / width) * 196.0f  );
-			xy[1] = (unsigned char)( ( v / height) * 196.0f  );
-			auto ret = write( fd, xy, 2 );
+					xy[0] = (unsigned char)( ( u / width) * 196.0f  );
+					xy[1] = (unsigned char)( ( v / height) * 196.0f  );
+					auto ret = write( fd, xy, 2 );
 
-			continue;
+					continue;
+				}
 			}
-			*/
+
 
 		} 
 		// send -1, -1 to arduino
 		auto ret = write( fd, offscreen, 2 );
 
+		}
+
+
 	}
-
-
-}
