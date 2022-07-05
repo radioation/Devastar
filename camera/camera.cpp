@@ -84,6 +84,13 @@ void display3d() {
 	// prep scene
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clear screen and depth buffers
 
+/*
+  glBegin(GL_POLYGON);
+    glColor3f(1, 0, 0); glVertex3f(-0.6, -0.75, 0.5);
+    glColor3f(0, 1, 0); glVertex3f(0.6, -0.75, 0);
+    glColor3f(0, 0, 1); glVertex3f(0, 0.75, 0);
+  glEnd();
+*/
 
 	////// BEGIN VIEW TRANSFORM  /////////////////////////////////////////////////////////////
 	//--- First get Camera position/rotation with LookAt (This is the View part of ModelView)
@@ -466,6 +473,9 @@ int main(int argc, char* argv[] )
 	worldPoints.push_back(cv::Point3f(width, 0, 0));
 	worldPoints.push_back(cv::Point3f(0, height, 0));
 	worldPoints.push_back(cv::Point3f(width, height, 0));
+	for( const auto& wp: worldPoints ) {
+		worldPoints3d.push_back(wp);
+	}
 	// setup rectangle for intersection test
 	cv::Vec3f S1, S2, P0;
 	P0[0] = worldPoints[0].x;
@@ -493,8 +503,45 @@ int main(int argc, char* argv[] )
 	glutDisplayFunc(display3d);
 	glutMouseFunc(mouseClick);
 	glutMotionFunc(mouseMove);
+
+
+	quat3D[0] = 1.0;
+	quat3D[1] = 0.0;
+	quat3D[2] = 0.0;
+	quat3D[3] = 0.0;
+
+// shader model
+        glShadeModel(GL_SMOOTH);  //  shading technique used on primitives ( GL_FLAT or GL_SMOOTH)
+        // set color used to clear
+        glClearColor(0.0f, 0.0f, 0.1f, 0.5f);
+        // setup depth buffer
+        glClearDepth(1.0f);
+        glEnable(GL_DEPTH_TEST);  // needed to allow  depth buffer to work
+        glDepthFunc(GL_LEQUAL);  // passes if incomoing z falue is less than or equali to stored Z
+
+        glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);  // perspective calculations
+
+
+        glViewport(0, 0, glWidth, glHeight); // set to current window size
+
+
+
+       // reset the projection matrix.
+        glMatrixMode(GL_PROJECTION);
+        glLoadIdentity();
+
+        // figure out the Aspect Ratio of the window
+        gluPerspective(45.0f, (GLfloat)glWidth / (GLfloat)glHeight, 0.1f, 100.0f);
+
+
+
+        // reset the Model/View matrix
+        glMatrixMode(GL_MODELVIEW);
+        glLoadIdentity();
+
 #endif
 
+/*
 	// setup serial communication
 	struct termios serial;
 	char buffer[BUFFER_SIZE];
@@ -525,7 +572,7 @@ int main(int argc, char* argv[] )
 	cfsetospeed(&serial, B9600);
 
 	tcsetattr(fd, TCSANOW, &serial); // Apply configuration	
-
+*/
 	// setup processing variables
 	std::vector<cv::Point2f> centers;
 	centers.resize(4);
@@ -539,6 +586,7 @@ int main(int argc, char* argv[] )
 	// look at the cmameras
 	cv::Point2f pt;
 	while (true) {
+			glutMainLoopEvent();
 		inputVideo >> frame;
 
 		// cv to grey
@@ -700,7 +748,7 @@ int main(int argc, char* argv[] )
 
 				xy[0] = (unsigned char)( ( u / width) * 196.0f  );
 				xy[1] = (unsigned char)( ( v / height) * 220.0f  );
-				auto ret = write( fd, xy, 2 );
+	//			auto ret = write( fd, xy, 2 );
 				continue;  // head back up the loop
 			} // if( hit ) 
 			//} // if( solveRet ) 
@@ -709,7 +757,7 @@ int main(int argc, char* argv[] )
 		} // if (contours.size() >= 4) 
 
 		// send -1, -1 to arduino
-		auto ret = write( fd, offscreen, 2 );
+	//	auto ret = write( fd, offscreen, 2 );
 
 	}// while(true)
 }
