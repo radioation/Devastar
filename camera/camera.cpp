@@ -80,7 +80,6 @@ void mat4fXmat4f(float* a, float* b, float* retmat) {
 
 
 void display3d() {
-
 	// prep scene
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clear screen and depth buffers
 
@@ -263,9 +262,11 @@ void mouseClick(int button, int state, int x, int y)
 		default:
 			break;
 	}
+       	glutPostRedisplay();
 }
 
 void mouseMove(int x, int y) {
+
 	float center_x = (float)glWidth / 2.0f;
 	float center_y = (float)glHeight / 2.0f;
 
@@ -359,6 +360,7 @@ void mouseMove(int x, int y) {
 	prevMouseX = x;
 	prevMouseY = y;
 
+	glutPostRedisplay();
 }
 
 #endif
@@ -582,6 +584,7 @@ int main(int argc, char* argv[] )
 	cv::Mat displayCopy;
 	const unsigned char offscreen[] = { 0xFF, 0xFF };
 	unsigned char xy[2];
+
 
 	// look at the cmameras
 	cv::Point2f pt;
