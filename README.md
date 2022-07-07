@@ -3,6 +3,9 @@ This project is my attempt to create a flatscreen lightgun for work with my Sega
 
 It is currently in its early stages and will be a while before it becomes usable.
 
+# License 
+Most of the files here are MIT licensed.  The arduino meancer.ino file is LGPL.
+
 # LM1881
 
 
