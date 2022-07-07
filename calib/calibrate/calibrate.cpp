@@ -34,8 +34,8 @@ int main()
 	// get camera 
 	cv::VideoCapture inputVideo; 
 	inputVideo.open(0); 
-	inputVideo.set( cv::CAP_PROP_FRAME_WIDTH, 1024);
-	inputVideo.set( cv::CAP_PROP_FRAME_HEIGHT, 720);
+	inputVideo.set( cv::CAP_PROP_FRAME_WIDTH,  640);
+	inputVideo.set( cv::CAP_PROP_FRAME_HEIGHT, 480);
 
 
 	// start grabbing images
@@ -82,7 +82,7 @@ int main()
 			std::cout << "Quit!" << std::endl;
 			exit(0);
 		}
-		if (key == 'q' ) {
+		if (key == 'c' ) {
 			break;
 		}
 		if (key == 'a' && ids.size() > 0) {

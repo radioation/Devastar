@@ -83,13 +83,13 @@ void display3d() {
 	// prep scene
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clear screen and depth buffers
 
-/*
-  glBegin(GL_POLYGON);
-    glColor3f(1, 0, 0); glVertex3f(-0.6, -0.75, 0.5);
-    glColor3f(0, 1, 0); glVertex3f(0.6, -0.75, 0);
-    glColor3f(0, 0, 1); glVertex3f(0, 0.75, 0);
-  glEnd();
-*/
+	/*
+	   glBegin(GL_POLYGON);
+	   glColor3f(1, 0, 0); glVertex3f(-0.6, -0.75, 0.5);
+	   glColor3f(0, 1, 0); glVertex3f(0.6, -0.75, 0);
+	   glColor3f(0, 0, 1); glVertex3f(0, 0.75, 0);
+	   glEnd();
+	   */
 
 	////// BEGIN VIEW TRANSFORM  /////////////////////////////////////////////////////////////
 	//--- First get Camera position/rotation with LookAt (This is the View part of ModelView)
@@ -219,6 +219,7 @@ void display3d() {
 		glEnd();
 	}
 
+		glColor3f(1.0f, 1.0f, 1.0f);
 	glBegin(GL_POINTS);
 	glVertex3d(hit3dX, hit3dY, 0.0f);
 	glEnd();
@@ -262,7 +263,7 @@ void mouseClick(int button, int state, int x, int y)
 		default:
 			break;
 	}
-       	glutPostRedisplay();
+	glutPostRedisplay();
 }
 
 void mouseMove(int x, int y) {
@@ -409,50 +410,6 @@ int main(int argc, char* argv[] )
 {
 	const float width = 510.0f;
 	const float height = 260.0f;
-	/*
-		 {
-		 cv::Vec3f Ray0; // Ray origin
-		 Ray0[0] = width / 2.0;
-		 Ray0[1] = height / 2.0;
-		 Ray0[2] = -1000.0;
-		 cv::Vec3f D; // Ray direction
-		 D[0] = 0.0;
-		 D[1] = 0.0;
-		 D[2] = 1.0;
-
-		 Ray0[0] = 496.075,
-		 Ray0[1] = 1097.22,
-		 Ray0[2] = -2448.95;;
-		 D[0] = -0.00915757;
-		 D[1] = -0.254152;
-		 D[2] = 0.967121;
-
-
-		 cv::Vec3f P0; // Plane origin
-		 P0[0] = 0.0f;
-		 P0[1] = 0.0f;
-		 P0[2] = 0.0f;
-		 std::cout << "P0 " << P0 << std::endl;
-
-		 cv::Vec3f S1;
-		 S1[0] = 1.0f;
-		 S1[1] = 0.0f;
-		 S1[2] = 0.0f;
-
-		 cv::Vec3f S2;
-		 S2[0] = 0.0f;
-		 S2[1] = 1.0f;
-		 S2[2] = 0.0f;
-
-		 float u, v;
-		 float S1Len = width;
-		 float S2Len = height;
-		 bool inRect = intersectRect(Ray0, D, P0, S1, S2, width, height, u, v);
-		 std::cout << "inRect: " << inRect << " u " << u << " v " << v << std::endl;
-		 exit(0);
-
-		 }
-		 */
 
 	// Read in camera calibration calibration
 	cv::FileStorage fs("calib.yml", cv::FileStorage::READ);
@@ -512,53 +469,53 @@ int main(int argc, char* argv[] )
 	quat3D[2] = 0.0;
 	quat3D[3] = 0.0;
 
-// shader model
-        glShadeModel(GL_SMOOTH);  //  shading technique used on primitives ( GL_FLAT or GL_SMOOTH)
-        // set color used to clear
-        glClearColor(0.0f, 0.0f, 0.1f, 0.5f);
-        // setup depth buffer
-        glClearDepth(1.0f);
-        glEnable(GL_DEPTH_TEST);  // needed to allow  depth buffer to work
-        glDepthFunc(GL_LEQUAL);  // passes if incomoing z falue is less than or equali to stored Z
+	// shader model
+	glShadeModel(GL_SMOOTH);  //  shading technique used on primitives ( GL_FLAT or GL_SMOOTH)
+	// set color used to clear
+	glClearColor(0.0f, 0.0f, 0.1f, 0.5f);
+	// setup depth buffer
+	glClearDepth(1.0f);
+	glEnable(GL_DEPTH_TEST);  // needed to allow  depth buffer to work
+	glDepthFunc(GL_LEQUAL);  // passes if incomoing z falue is less than or equali to stored Z
 
-        glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);  // perspective calculations
-
-
-        glViewport(0, 0, glWidth, glHeight); // set to current window size
+	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);  // perspective calculations
 
 
-
-       // reset the projection matrix.
-        glMatrixMode(GL_PROJECTION);
-        glLoadIdentity();
-
-        // figure out the Aspect Ratio of the window
-        gluPerspective(45.0f, (GLfloat)glWidth / (GLfloat)glHeight, 0.1f, 100.0f);
+	glViewport(0, 0, glWidth, glHeight); // set to current window size
 
 
 
-        // reset the Model/View matrix
-        glMatrixMode(GL_MODELVIEW);
-        glLoadIdentity();
+	// reset the projection matrix.
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+
+	// figure out the Aspect Ratio of the window
+	gluPerspective(45.0f, (GLfloat)glWidth / (GLfloat)glHeight, 0.1f, 100.0f);
+
+
+
+	// reset the Model/View matrix
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
 
 #endif
 
-/*
 	// setup serial communication
 	struct termios serial;
 	char buffer[BUFFER_SIZE];
 
 	// not controlling TTY.  
+	bool serialPortReady = true;
 	int fd = open( SERIAL_DEVICE, O_RDWR | O_NOCTTY | O_NDELAY);
 	if( fd < 0 ) {
 		std::cerr << "Unable to open serial" << std::endl;
 		perror( SERIAL_DEVICE );
-		return -1;
+		serialPortReady = false;
 	}
 	auto result = tcgetattr( fd, & serial );
 	if( result < 0 ) {
 		std::cerr << "Unable to get serial attributes" << std::endl;
-		return -1;
+		serialPortReady = false;
 	}
 
 	// Set up Serial Configuration
@@ -574,7 +531,7 @@ int main(int argc, char* argv[] )
 	cfsetospeed(&serial, B9600);
 
 	tcsetattr(fd, TCSANOW, &serial); // Apply configuration	
-*/
+
 	// setup processing variables
 	std::vector<cv::Point2f> centers;
 	centers.resize(4);
@@ -589,7 +546,7 @@ int main(int argc, char* argv[] )
 	// look at the cmameras
 	cv::Point2f pt;
 	while (true) {
-			glutMainLoopEvent();
+		glutMainLoopEvent();
 		inputVideo >> frame;
 
 		// cv to grey
@@ -672,8 +629,11 @@ int main(int argc, char* argv[] )
 			// rvec- is the rotation vector
 			// tvec- is the translation vector 
 			cv::Mat rvec, tvec;
+			std::vector< cv::Mat > rvecs, tvecs;	
 			auto solveRet = cv::solvePnP(worldPoints, centers, cameraMatrix, distCoeffs, rvec, tvec, false, cv::SOLVEPNP_AP3P);
+			//auto solveRet = cv::solvePnPGeneric(worldPoints, centers, cameraMatrix, distCoeffs, rvecs, tvecs, false, cv::SOLVEPNP_AP3P, rvec, tvec);
 
+			std::cout << "solveRet: " << solveRet << std::endl;
 			//if( solveRet ) {
 			cv::Mat R;
 			cv::Rodrigues(rvec, R); // get rotation matrix R ( 3x3 ) from rotation vector 
@@ -726,12 +686,13 @@ int main(int argc, char* argv[] )
 			dir.y = R.at<double>(1, 2);
 			dir.z = R.at<double>(2, 2);
 			cv::Point3f pt2 = dir + pt; 
+			camera3dPts.push_back(pt2);						
 
 			// set uv on plane 
-			camera3dPts.push_back(pt2);						
 			hit3dX = u / 1000.0f;
 			hit3dY = v / 1000.0f;
 			// refresh 
+			glutPostRedisplay();
 			glutMainLoopEvent();
 #endif
 
@@ -751,7 +712,9 @@ int main(int argc, char* argv[] )
 
 				xy[0] = (unsigned char)( ( u / width) * 196.0f  );
 				xy[1] = (unsigned char)( ( v / height) * 220.0f  );
-	//			auto ret = write( fd, xy, 2 );
+				if(serialPortReady ) {
+					auto ret = write( fd, xy, 2 );
+				}
 				continue;  // head back up the loop
 			} // if( hit ) 
 			//} // if( solveRet ) 
@@ -760,7 +723,9 @@ int main(int argc, char* argv[] )
 		} // if (contours.size() >= 4) 
 
 		// send -1, -1 to arduino
-	//	auto ret = write( fd, offscreen, 2 );
+		if(serialPortReady ) {
+			auto ret = write( fd, offscreen, 2 );
+		}
 
 	}// while(true)
 }
