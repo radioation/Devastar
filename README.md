@@ -1,13 +1,13 @@
 # Devastar
-This project will create a flatscreen lightgun to work with my Sega Menacer game (and any other Menacer game if I get it to work)
+This project is my attempt to create a flatscreen lightgun for work with my Sega Menacer game (and any other Menacer game if I get it to work)
 
 It is currently in its early stages and will be a while before it becomes usable.
 
-## LM1881
+# LM1881
 
 
-## Faking a Menacer
-
+# Faking a Menacer
+## Circuit
 
 ## Menacer X/Y Positioning
 Setting the menacer position means setting TH at the appropriate time.  I can use
