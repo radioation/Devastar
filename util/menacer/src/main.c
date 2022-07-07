@@ -102,29 +102,38 @@ int main()
 			u16 value = JOY_readJoypad(JOY_2);
 			if (value & BUTTON_A)
 			{
-				VDP_drawText("A", 18, 9);
+				VDP_drawText("A", 17, 9);
 			}
 			else
 			{
-				VDP_drawText(" ", 18, 9);
+				VDP_drawText(" ", 17, 9);
 			}
 
 			if (value & BUTTON_B)
 			{
-				VDP_drawText("B", 20, 9);
+				VDP_drawText("B", 19, 9);
 			}
 			else
 			{
-				VDP_drawText(" ", 20, 9);
+				VDP_drawText(" ", 19, 9);
 			}
 
 			if (value & BUTTON_C)
 			{
-				VDP_drawText("C", 22, 9);
+				VDP_drawText("C", 21, 9);
 			}
 			else
 			{
-				VDP_drawText(" ", 22, 9);
+				VDP_drawText(" ", 21, 9);
+			}
+
+			if (value & BUTTON_START)
+			{
+				VDP_drawText("S", 23, 9);
+			}
+			else
+			{
+				VDP_drawText(" ", 23, 9);
 			}
 
 			// The menacer appears to return 8-bit values (0 to 255)
