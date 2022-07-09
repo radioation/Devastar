@@ -13,4 +13,4 @@ include_directories( ${OpenCV_INCLUDE_DIR} ${OPENGL_INCLUDE_DIRS}  ${GLUT_INCLUD
 # add the executable
 add_executable( camera camera.cpp)
 
-target_link_libraries( camera ${OpenCV_LIBS}  ${OPENGL_LIBRARIES} ${GLUT_LIBRARY} )
+target_link_libraries( camera ${OpenCV_LIBS}  ${OPENGL_LIBRARIES} ${GLUT_LIBRARY} gpiod )

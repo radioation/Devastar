@@ -4,6 +4,9 @@
 #include <opencv2/highgui/highgui.hpp>
 
 
+#include <gpiod.h>
+
+
 #include <iostream>
 #include <vector>
 
@@ -19,9 +22,9 @@
 #define BAUDRATE B38400            
 #define SERIAL_DEVICE "/dev/ttyACM0"
 
-#define SHOW_IMAGE
+//#define SHOW_IMAGE
 #define SHOW_CALC
-#define SHOW_3D
+//#define SHOW_3D
 
 #ifdef SHOW_3D
 #include <GL/freeglut.h>
@@ -405,9 +408,72 @@ bool intersectRect(const cv::Vec3f& R0, // ray start
 }
 
 
+struct gpiod_chip * chip;
+struct gpiod_line_request_config config;
+struct gpiod_line_bulk lines;
 
+void gpio_cleanup() {
+	gpiod_line_release_bulk( &lines );
+	gpiod_chip_close( chip );
+}
 int main(int argc, char* argv[] )
 {
+	unsigned int offsets[4];
+	int values[4];
+	int gpioErr;
+	chip = gpiod_chip_open("/dev/gpiochip0");
+	if(!chip)
+	{
+		perror("gpiod_chip_open");
+		return -1;
+	}
+
+	offsets[0] = 5;
+	offsets[1] = 6;
+	offsets[2] = 13;
+	offsets[3] = 19;
+	values[0] = -1;
+	values[1] = -1;
+	values[2] = -1;
+	values[3] = -1;
+	auto err = gpiod_chip_get_lines(chip, offsets, 4, &lines);
+	if(err)
+	{
+		perror("gpiod_chip_get_lines");
+		gpio_cleanup();
+		return -2;
+	}
+
+	memset(&config, 0, sizeof(config));
+	config.consumer = "devestar";
+	config.request_type = GPIOD_LINE_REQUEST_DIRECTION_INPUT;
+	config.flags = 0;
+
+	// open lines for input
+	err = gpiod_line_request_bulk(&lines, &config, values);
+	if(err)
+	{
+		perror("gpiod_line_request_bulk");
+		gpio_cleanup();
+		return -3;
+	}
+
+	// read lines	
+	while ( true ) {
+		err = gpiod_line_get_value_bulk(&lines, values);
+		std::cout << "values: " << values[0] << " " << values[1] << " " << values[2] << " " << values[3] << std::endl;
+		if(err)
+		{
+			perror("gpiod_line_get_value_bulk");
+			gpio_cleanup();
+			return -4;
+		}
+		usleep( 1000000 );
+	}
+
+
+
+
 	const float width = 510.0f;
 	const float height = 260.0f;
 
@@ -432,9 +498,6 @@ int main(int argc, char* argv[] )
 	worldPoints.push_back(cv::Point3f(width, 0, 0));
 	worldPoints.push_back(cv::Point3f(0, height, 0));
 	worldPoints.push_back(cv::Point3f(width, height, 0));
-	for( const auto& wp: worldPoints ) {
-		worldPoints3d.push_back(wp);
-	}
 	// setup rectangle for intersection test
 	cv::Vec3f S1, S2, P0;
 	P0[0] = worldPoints[0].x;
@@ -452,6 +515,12 @@ int main(int argc, char* argv[] )
 	S2 = cv::normalize(S2);
 
 #ifdef SHOW_3D
+	// setup screen in 3d	
+	for( const auto& wp: worldPoints ) {
+		worldPoints3d.push_back(wp);
+	}
+
+	// initialize glut/OpenGL
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
 
@@ -546,7 +615,9 @@ int main(int argc, char* argv[] )
 	// look at the cmameras
 	cv::Point2f pt;
 	while (true) {
+#ifdef SHOW_3D
 		glutMainLoopEvent();
+#endif
 		inputVideo >> frame;
 
 		// cv to grey
@@ -693,7 +764,6 @@ int main(int argc, char* argv[] )
 			hit3dY = v / 1000.0f;
 			// refresh 
 			glutPostRedisplay();
-			glutMainLoopEvent();
 #endif
 
 
