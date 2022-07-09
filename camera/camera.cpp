@@ -458,18 +458,6 @@ int main(int argc, char* argv[] )
 		return -3;
 	}
 
-	// read lines	
-	while ( true ) {
-		err = gpiod_line_get_value_bulk(&lines, values);
-		std::cout << "values: " << values[0] << " " << values[1] << " " << values[2] << " " << values[3] << std::endl;
-		if(err)
-		{
-			perror("gpiod_line_get_value_bulk");
-			gpio_cleanup();
-			return -4;
-		}
-		usleep( 1000000 );
-	}
 
 
 
@@ -608,9 +596,9 @@ int main(int argc, char* argv[] )
 	cv::Mat gray;
 	cv::Mat thresh;
 	cv::Mat displayCopy;
-	const unsigned char offscreen[] = { 0xFF, 0xFF };
-	unsigned char xy[2];
-
+	unsigned char offscreen[] = { 0xFF, 0xFF, 0x00 };
+	unsigned char xyb[3];
+	unsigned char buttons = 0;
 
 	// look at the cmameras
 	cv::Point2f pt;
@@ -618,6 +606,29 @@ int main(int argc, char* argv[] )
 #ifdef SHOW_3D
 		glutMainLoopEvent();
 #endif
+		// Process buttons
+		buttons = 0;
+		err = gpiod_line_get_value_bulk(&lines, values);
+		if( !values[0] ) {
+			buttons |= 0x01;
+		}
+		if( !values[1] ) {
+			buttons |= 0x02;
+		}
+		if( !values[2] ) {
+			buttons |= 0x04;
+		}
+		if( !values[3] ) {
+			buttons |= 0x08;
+		}
+		if(err)
+		{
+			perror("gpiod_line_get_value_bulk");
+			gpio_cleanup();
+			return -4;
+		}
+
+		// Process Video
 		inputVideo >> frame;
 
 		// cv to grey
@@ -780,10 +791,11 @@ int main(int argc, char* argv[] )
 				// X range is 73 to 269 : send 0 through 196
 				// Y range is 30 to 250 : send 0 through 220
 
-				xy[0] = (unsigned char)( ( u / width) * 196.0f  );
-				xy[1] = (unsigned char)( ( v / height) * 220.0f  );
+				xyb[0] = (unsigned char)( ( u / width) * 196.0f  );
+				xyb[1] = (unsigned char)( ( v / height) * 220.0f  );
+				xyb[2] = buttons;
 				if(serialPortReady ) {
-					auto ret = write( fd, xy, 2 );
+					auto ret = write( fd, xyb, sizeof(xyb) );
 				}
 				continue;  // head back up the loop
 			} // if( hit ) 
@@ -794,7 +806,8 @@ int main(int argc, char* argv[] )
 
 		// send -1, -1 to arduino
 		if(serialPortReady ) {
-			auto ret = write( fd, offscreen, 2 );
+			offscreen[2] = buttons;
+			auto ret = write( fd, offscreen, sizeof(offscreen) );
 		}
 
 	}// while(true)
