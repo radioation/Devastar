@@ -39,6 +39,7 @@ int main()
 	// Sprite Setup
 	Sprite *targetSprite = NULL;
 	VDP_setPalette(PAL1, target.palette->data);
+	VDP_setPalette(PAL2, crosshairs.palette->data);
 	SPR_init();
 
 	// crosshair is 16x16
@@ -48,7 +49,7 @@ int main()
 	crosshairsSprite = SPR_addSprite(&crosshairs,								 // Sprite defined in resources
 																	 fix32ToInt(crosshairsPosX), // starting X position
 																	 fix32ToInt(crosshairsPosY), // starting Y position
-																	 TILE_ATTR(PAL1,						 // specify palette
+																	 TILE_ATTR(PAL2,						 // specify palette
 																						 1,								 // Tile priority ( with background)
 																						 FALSE,						 // flip the sprite vertically?
 																						 FALSE						 // flip the sprite horizontally
@@ -92,6 +93,10 @@ int main()
 		VDP_drawText("Menacer NOT found.", 11, 1);
 	}
 
+	VDP_drawText("A:", 18, 5);
+	VDP_drawText("B:", 18, 6);
+	VDP_drawText("C:", 18, 7);
+	VDP_drawText("START:", 14, 8);
 	///////////////////////////////////////////////////////////////////////////////////
 	// Main Loop!
 	while (TRUE)
@@ -102,38 +107,38 @@ int main()
 			u16 value = JOY_readJoypad(JOY_2);
 			if (value & BUTTON_A)
 			{
-				VDP_drawText("A", 17, 9);
+				VDP_drawText("ON", 21, 5);
 			}
 			else
 			{
-				VDP_drawText(" ", 17, 9);
+				VDP_drawText("  ", 21, 5);
 			}
 
 			if (value & BUTTON_B)
 			{
-				VDP_drawText("B", 19, 9);
+				VDP_drawText("ON", 21, 6);
 			}
 			else
 			{
-				VDP_drawText(" ", 19, 9);
+				VDP_drawText("  ", 21, 6);
 			}
 
 			if (value & BUTTON_C)
 			{
-				VDP_drawText("C", 21, 9);
+				VDP_drawText("ON", 21, 7);
 			}
 			else
 			{
-				VDP_drawText(" ", 21, 9);
+				VDP_drawText("  ", 21, 7);
 			}
 
 			if (value & BUTTON_START)
 			{
-				VDP_drawText("S", 23, 9);
+				VDP_drawText("ON", 21, 8);
 			}
 			else
 			{
-				VDP_drawText(" ", 23, 9);
+				VDP_drawText("  ", 21, 8);
 			}
 
 			// The menacer appears to return 8-bit values (0 to 255)
@@ -142,7 +147,7 @@ int main()
 			s16 yVal = JOY_readJoypadY(JOY_2);
 			char message[40];
 			sprintf(message, "Menacer Values x:%d, y:%d      ", xVal, yVal);
-			VDP_drawText(message, 8, 7);
+			VDP_drawText(message, 8, 3);
 
 			//  Render with lookup table
 			crosshairsPosX = fix32Sub(xLookup[xVal], FIX32(8));
