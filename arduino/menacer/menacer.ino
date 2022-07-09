@@ -1,6 +1,6 @@
 // some of this code (delayX4Cycles() )  was derived from https://github.com/arduino
 // SO it's LGPL 2.1
-/* 
+/*
   This library is free software; you can redistribute it and/or
   modify it under the terms of the GNU Lesser General Public
   License as published by the Free Software Foundation; either
@@ -19,14 +19,23 @@
 const int COMPOSITE_SYNC_1881 = 2;
 const int VERTICAL_SYNC_1881 = 3;
 volatile int verticalLine = 0;
+
+// controller pins
 const int TH_PIN = 8;
 
+const int B_PIN = 9;
+const int A_PIN = 10;
+const int C_PIN = 11;
+const int S_PIN = 12;
 
+// offsets
 const int minY = 30;
 const int minX = 19;
-int y = 140;  // line count
-int x = 200;  // Simulate TH delay
 
+// input variables
+byte y = 140;  // line count
+byte x = 200;  // Simulate TH delay
+byte buttons = 0;
 
 // modified delayMicroseconds to use the smallest possible wait
 // to increase horizontal resolution
@@ -45,11 +54,11 @@ void delayX4Cycles(unsigned int c)
 void compositeSyncInterrrupt() {
   verticalLine++;
   if ( verticalLine == minY + y && x != 255 ) {
-    //delayMicroseconds( x );
     delayX4Cycles(minX + x);
     digitalWrite( TH_PIN, HIGH );
     delayMicroseconds( 5 ); // arbitrary.
     digitalWrite( TH_PIN, LOW );
+
   }
 }
 
@@ -58,21 +67,60 @@ void verticalSyncInterrrupt() {
 }
 
 void setup() {
+  // serial communication
   Serial.begin(9600);
+
+  // Sync Splitter
   pinMode(COMPOSITE_SYNC_1881, INPUT);
   pinMode(VERTICAL_SYNC_1881, INPUT);
 
+  // controller pins
   pinMode(TH_PIN, OUTPUT);
   digitalWrite(TH_PIN, LOW);
 
+  pinMode(B_PIN, OUTPUT);
+  digitalWrite(B_PIN, HIGH);
+  pinMode(A_PIN, OUTPUT);
+  digitalWrite(A_PIN, HIGH);
+  pinMode(C_PIN, OUTPUT);
+  digitalWrite(C_PIN, HIGH);
+  pinMode(S_PIN, OUTPUT);
+  digitalWrite(S_PIN, HIGH);
+
+  // interrupts
   attachInterrupt(digitalPinToInterrupt(COMPOSITE_SYNC_1881), compositeSyncInterrrupt, RISING);
   attachInterrupt(digitalPinToInterrupt(VERTICAL_SYNC_1881), verticalSyncInterrrupt, RISING);
 }
 
 void loop() {
-   if(Serial.available() > 1)
-   {
-      x = Serial.read();
-      y = Serial.read();
-   }
+  if (Serial.available() > 2)
+  {
+    x = Serial.read();
+    y = Serial.read();
+    buttons = Serial.read(); 
+      // set buttons
+    if ( buttons & 0x01 ) {
+      digitalWrite(B_PIN, LOW);
+    } else {
+      digitalWrite(B_PIN, HIGH);
+    }
+    if ( buttons & 0x02 ) {
+      digitalWrite(A_PIN, LOW);
+    } else {
+      digitalWrite(A_PIN, HIGH);
+    }
+
+    if ( buttons & 0x04 ) {
+      digitalWrite(C_PIN, LOW);
+    } else {
+      digitalWrite(C_PIN, HIGH);
+    }
+
+    if ( buttons & 0x08 ) {
+      digitalWrite(S_PIN, LOW);
+    } else {
+      digitalWrite(S_PIN, HIGH);
+    }
+  }
+
 }
