@@ -22,7 +22,7 @@
 #define BAUDRATE B38400            
 #define SERIAL_DEVICE "/dev/ttyACM0"
 
-//#define SHOW_IMAGE
+#define SHOW_IMAGE
 #define SHOW_CALC
 //#define SHOW_3D
 
@@ -222,7 +222,7 @@ void display3d() {
 		glEnd();
 	}
 
-		glColor3f(1.0f, 1.0f, 1.0f);
+	glColor3f(1.0f, 1.0f, 1.0f);
 	glBegin(GL_POINTS);
 	glVertex3d(hit3dX, hit3dY, 0.0f);
 	glEnd();
@@ -714,101 +714,101 @@ int main(int argc, char* argv[] )
 			std::vector< cv::Mat > rvecs, tvecs;	
 			auto solveRet = cv::solvePnP(worldPoints, centers, cameraMatrix, distCoeffs, rvec, tvec, false, cv::SOLVEPNP_AP3P);
 			//auto solveRet = cv::solvePnPGeneric(worldPoints, centers, cameraMatrix, distCoeffs, rvecs, tvecs, false, cv::SOLVEPNP_AP3P, rvec, tvec);
+			if( solveRet ) {
+				std::cout << "solveRet: " << solveRet << std::endl;
+				//if( solveRet ) {
+				cv::Mat R;
+				cv::Rodrigues(rvec, R); // get rotation matrix R ( 3x3 ) from rotation vector 
+				R = R.t(); // inverse
+				tvec = -R * tvec; // translation of inverseA == actual camera position
 
-			std::cout << "solveRet: " << solveRet << std::endl;
-			//if( solveRet ) {
-			cv::Mat R;
-			cv::Rodrigues(rvec, R); // get rotation matrix R ( 3x3 ) from rotation vector 
-			R = R.t(); // inverse
-			tvec = -R * tvec; // translation of inverseA == actual camera position
 
 
+				// compute itersection
+				cv::Vec3f Ray0,D;
+				Ray0[0] = tvec.at<double>(0);
+				Ray0[1] = tvec.at<double>(1);
+				Ray0[2] = tvec.at<double>(2);
 
-			// compute itersection
-			cv::Vec3f Ray0,D;
-			Ray0[0] = tvec.at<double>(0);
-			Ray0[1] = tvec.at<double>(1);
-			Ray0[2] = tvec.at<double>(2);
+				D[0] = R.at<double>(0, 2);
+				D[1] = R.at<double>(1, 2);
+				D[2] = R.at<double>(2, 2);
 
-			D[0] = R.at<double>(0, 2);
-			D[1] = R.at<double>(1, 2);
-			D[2] = R.at<double>(2, 2);
-
-			float u, v;
-			bool hit = intersectRect(Ray0, D, P0, S1, S2, width, height, u, v);
-			std::cout << "U: " << u << " V: " << v << " hit: " << hit << std::endl;
+				float u, v;
+				bool hit = intersectRect(Ray0, D, P0, S1, S2, width, height, u, v);
+				std::cout << "U: " << u << " V: " << v << " hit: " << hit << std::endl;
 
 #ifdef SHOW_CALC
-			std::cout << "rvec: " << rvec << std::endl;	
-			std::cout << "tvec: " << tvec << std::endl;
-			std::cout << "R: " << R << std::endl;
-			std::cout << "inverse tvec: " << tvec << std::endl;
+				std::cout << "rvec: " << rvec << std::endl;	
+				std::cout << "tvec: " << tvec << std::endl;
+				std::cout << "R: " << R << std::endl;
+				std::cout << "inverse tvec: " << tvec << std::endl;
 
-			std::cout << "Ray0: " << Ray0 << std::endl;
-			std::cout << "D: " << D << std::endl;
-			std::cout << "P0: " << P0 << std::endl;
-			std::cout << "S1: " << S1 << std::endl;
-			std::cout << "S2: " << S2 << std::endl;
-			std::cout << "width: " << width  << std::endl;
-			std::cout << "height: " << height << std::endl;
+				std::cout << "Ray0: " << Ray0 << std::endl;
+				std::cout << "D: " << D << std::endl;
+				std::cout << "P0: " << P0 << std::endl;
+				std::cout << "S1: " << S1 << std::endl;
+				std::cout << "S2: " << S2 << std::endl;
+				std::cout << "width: " << width  << std::endl;
+				std::cout << "height: " << height << std::endl;
 #endif
 
 #ifdef SHOW_3D
-			camera3dPts.clear();
-			// start of camera axis
-			cv::Point3f pt;
-			// scale down point for viewing
-			pt.x = tvec.at<double>(0) / 1000.0;
-			pt.y = tvec.at<double>(1) / 1000.0;
-			pt.z = tvec.at<double>(2) / 1000.0;
-			camera3dPts.push_back(pt);
-			// direction of camera axis
-			cv::Point3f dir;
-			dir.x = R.at<double>(0, 2);
-			dir.y = R.at<double>(1, 2);
-			dir.z = R.at<double>(2, 2);
-			cv::Point3f pt2 = dir + pt; 
-			camera3dPts.push_back(pt2);						
+				camera3dPts.clear();
+				// start of camera axis
+				cv::Point3f pt;
+				// scale down point for viewing
+				pt.x = tvec.at<double>(0) / 1000.0;
+				pt.y = tvec.at<double>(1) / 1000.0;
+				pt.z = tvec.at<double>(2) / 1000.0;
+				camera3dPts.push_back(pt);
+				// direction of camera axis
+				cv::Point3f dir;
+				dir.x = R.at<double>(0, 2);
+				dir.y = R.at<double>(1, 2);
+				dir.z = R.at<double>(2, 2);
+				cv::Point3f pt2 = dir + pt; 
+				camera3dPts.push_back(pt2);						
 
-			// set uv on plane 
-			hit3dX = u / 1000.0f;
-			hit3dY = v / 1000.0f;
-			// refresh 
-			glutPostRedisplay();
+				// set uv on plane 
+				hit3dX = u / 1000.0f;
+				hit3dY = v / 1000.0f;
+				// refresh 
+				glutPostRedisplay();
 #endif
 
 
-			if( hit ) {
+				if( hit ) {
 #ifdef SHOW_IMAGE
-				cv::Point2f pt;
-				pt.x = (u/width) * 640.0f;
-				pt.y = (v/height) * 480.0f;
-				cv::circle( displayCopy, pt, 5.0f, cv::Scalar(0,255,255), 3.0f);
-				cv::imshow("points", displayCopy );
-				cv::waitKey(1);
+					cv::Point2f pt;
+					pt.x = (u/width) * 640.0f;
+					pt.y = (v/height) * 480.0f;
+					cv::circle( displayCopy, pt, 5.0f, cv::Scalar(0,255,255), 3.0f);
+					cv::imshow("points", displayCopy );
+					cv::waitKey(1);
 #endif
-				// from obvservation with delay4Cycles() on arduion
-				// X range is 73 to 269 : send 0 through 196
-				// Y range is 30 to 250 : send 0 through 220
+					// from obvservation with delay4Cycles() on arduion
+					// X range is 73 to 269 : send 0 through 196
+					// Y range is 30 to 250 : send 0 through 220
 
-				xyb[0] = (unsigned char)( ( u / width) * 196.0f  );
-				xyb[1] = (unsigned char)( ( v / height) * 220.0f  );
-				xyb[2] = buttons;
-				if(serialPortReady ) {
-					auto ret = write( fd, xyb, sizeof(xyb) );
-				}
-				continue;  // head back up the loop
-			} // if( hit ) 
-			//} // if( solveRet ) 
+					xyb[0] = (unsigned char)( ( u / width) * 196.0f  );
+					xyb[1] = (unsigned char)( ( v / height) * 220.0f  );
+					xyb[2] = buttons;
+					if(serialPortReady ) {
+						auto ret = write( fd, xyb, sizeof(xyb) );
+					}
+					continue;  // head back up the loop
+				} // if( hit ) 
+			} // if( solveRet ) 
 
 
-		} // if (contours.size() >= 4) 
+			} // if (contours.size() >= 4) 
 
-		// send -1, -1 to arduino
-		if(serialPortReady ) {
-			offscreen[2] = buttons;
-			auto ret = write( fd, offscreen, sizeof(offscreen) );
-		}
+			// send -1, -1 to arduino
+			if(serialPortReady ) {
+				offscreen[2] = buttons;
+				auto ret = write( fd, offscreen, sizeof(offscreen) );
+			}
 
-	}// while(true)
-}
+		}// while(true)
+	}
