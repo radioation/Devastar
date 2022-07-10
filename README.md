@@ -1,5 +1,5 @@
 # Devastar
-This project is my attempt to create a flatscreen lightgun for work with my Sega Menacer game (and any other Menacer game if I get it to work)
+This project is an attempt to create a flatscreen lightgun to work with my Sega Menacer game (and any other Menacer game if I get it to work)
 
 It is currently in its early stages and will be a while before it becomes usable.
 
@@ -7,14 +7,15 @@ It is currently in its early stages and will be a while before it becomes usable
 Most of the files here are MIT licensed.  The arduino meancer.ino file is LGPL.
 
 # LM1881
-
+<coming soon> 
 
 # Faking a Menacer
 ## Circuit
+<coming soon~ish> 
 
 ## Menacer X/Y Positioning
-Setting the menacer position means setting TH at the appropriate time.  I can use
-the output from an LM1881 to detertime the current scanline (Y) and wait X to
+Setting the menacer position means pulling the Genesis TH pin low at the appropriate time.  I can use
+the output from a LM1881 sync separator to determine the current scanline (Y) and wait (X) to
 set the horizontal position on the scanline.   A few experiments with a Genesis 
 Model 2 and Arduino Leonardo gave me the following values:
 
@@ -23,7 +24,7 @@ Model 2 and Arduino Leonardo gave me the following values:
 
 With 68 - 19 = 49 steps, waiting X microseconds to set the horizontal position
 seems insufficient.  I will try a faster microcontroller, but right now I've only
-got slow Arduinos here.
+got 16MHz Arduinos here.
 
 
 Sub-microsecond delay increments can be obtained with a custom delay function:
