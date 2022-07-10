@@ -22,9 +22,9 @@
 #define BAUDRATE B38400            
 #define SERIAL_DEVICE "/dev/ttyACM0"
 
-#define SHOW_IMAGE
-#define SHOW_CALC
-#define SHOW_3D
+//#define SHOW_IMAGE
+//#define SHOW_CALC
+//#define SHOW_3D
 
 #ifdef SHOW_3D
 #include <GL/freeglut.h>
