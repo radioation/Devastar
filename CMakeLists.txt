@@ -9,6 +9,6 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 # Add subdirectories
 add_subdirectory(calib/calibrate)
 add_subdirectory(calib/generate_board)
-add_subdirectory(camera)
+add_subdirectory(gun_camera)
 
 

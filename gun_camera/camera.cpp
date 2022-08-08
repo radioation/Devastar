@@ -26,6 +26,11 @@
 //#define SHOW_CALC
 //#define SHOW_3D
 
+
+#include <filesystem>
+namespace fs = std::filesystem;
+
+
 #ifdef SHOW_3D
 #include <GL/freeglut.h>
 void init3d( const std::vector<cv::Point3f>& worldPoints );
@@ -40,32 +45,62 @@ void update3d( const cv::Mat& tvec, const cv::Mat& R, const float& u, const floa
 // of the sides of the  rectangle.
 
 bool intersectRect(const cv::Vec3f& R0, // ray start
-		const cv::Vec3f& D, // ray direction 
-		const cv::Vec3f& P0,// Rectangle Origin 
-		const cv::Vec3f& S1, // side 1. direction
-		const cv::Vec3f& S2, // side 2. direction 
-		const float& S1Len,  // side 1. length
-		const float& S2Len,  // side 2. length
-		float& u,            // u 
-		float& v	     // v	
-		) {
+    const cv::Vec3f& D, // ray direction 
+    const cv::Vec3f& P0,// Rectangle Origin 
+    const cv::Vec3f& S1, // side 1. direction
+    const cv::Vec3f& S2, // side 2. direction 
+    const float& S1Len,  // side 1. length
+    const float& S2Len,  // side 2. length
+    float& u,            // u 
+    float& v	     // v	
+    ) {
 
-	// compute plane Normal 
-	cv::Vec3f N = S1.cross(S2);
-	float DdotN = D.dot(N);
+  // compute plane Normal 
+  cv::Vec3f N = S1.cross(S2);
+  float DdotN = D.dot(N);
 
-	// get point on plane P
-	auto a = ((P0 - R0).dot(N)) / D.dot(N);
-	// we assume that P = R0 + a * D
-	cv::Vec3f P = R0 + a * D;  // Point on Plane
+  // get point on plane P
+  auto a = ((P0 - R0).dot(N)) / D.dot(N);
+  // we assume that P = R0 + a * D
+  cv::Vec3f P = R0 + a * D;  // Point on Plane
 
-	// make vector out of point on plane and orign
-	cv::Vec3f P0P = P - P0;
+  // make vector out of point on plane and orign
+  cv::Vec3f P0P = P - P0;
 
-	// project P0P vector onto the sides.
-	u = P0P.dot(S1);
-	v = P0P.dot(S2);
-	return (u >= 0 && u <= S1Len && v >= 0 && v <= S2Len);
+  // project P0P vector onto the sides.
+  u = P0P.dot(S1);
+  v = P0P.dot(S2);
+  return (u >= 0 && u <= S1Len && v >= 0 && v <= S2Len);
+
+}
+
+void computeUV(const cv::Vec3f& R0, // ray start
+    const cv::Vec3f& D, // ray direction 
+    const cv::Vec3f& P0,// Rectangle Origin 
+    const cv::Vec3f& S1, // side 1. direction
+    const cv::Vec3f& S2, // side 2. direction 
+    const float& S1Len,  // side 1. length
+    const float& S2Len,  // side 2. length
+    float& u,            // u   // could be 
+    float& v	     // v	
+    ) {
+
+  // compute plane Normal 
+  cv::Vec3f N = S1.cross(S2);
+  float DdotN = D.dot(N);
+
+  // get point on plane P
+  auto a = ((P0 - R0).dot(N)) / D.dot(N);
+  // we assume that P = R0 + a * D
+  cv::Vec3f P = R0 + a * D;  // Point on Plane
+
+  // make vector out of point on plane and orign
+  cv::Vec3f P0P = P - P0;
+
+  // project P0P vector onto the sides.
+  u = P0P.dot(S1);
+  v = P0P.dot(S2);
+  //return (u >= 0 && u <= S1Len && v >= 0 && v <= S2Len);
 
 }
 
@@ -76,334 +111,337 @@ struct gpiod_line_request_config config;
 struct gpiod_line_bulk lines;
 
 void gpio_cleanup() {
-	gpiod_line_release_bulk( &lines );
-	gpiod_chip_close( chip );
+  gpiod_line_release_bulk( &lines );
+  gpiod_chip_close( chip );
 }
 
 
 int main(int argc, char* argv[] )
 {
-	unsigned int offsets[4];
-	int values[4];
-	int gpioErr;
-	chip = gpiod_chip_open("/dev/gpiochip0");
-	if(!chip)
-	{
-		perror("gpiod_chip_open");
-		return -1;
-	}
+  fs::path calibPath("./calib.yml");
+  if( !fs::exists( calibPath ) ) {
+    std::cerr << "No intrinsics calibration file found.  Please run ./bin/calibrate." << std::endl;
+    return -1;
+  }
+  // setup GPIO 
+  unsigned int offsets[4];
+  int values[4];
+  int gpioErr;
+  chip = gpiod_chip_open("/dev/gpiochip0");
+  if(!chip)
+  {
+    perror("gpiod_chip_open");
+    return -1;
+  }
 
-	offsets[0] = 5;
-	offsets[1] = 6;
-	offsets[2] = 13;
-	offsets[3] = 19;
-	values[0] = -1;
-	values[1] = -1;
-	values[2] = -1;
-	values[3] = -1;
-	auto err = gpiod_chip_get_lines(chip, offsets, 4, &lines);
-	if(err)
-	{
-		perror("gpiod_chip_get_lines");
-		gpio_cleanup();
-		return -2;
-	}
+  // setup button pins
+  offsets[0] = 5;
+  offsets[1] = 6;
+  offsets[2] = 13;
+  offsets[3] = 19;
+  values[0] = -1;
+  values[1] = -1;
+  values[2] = -1;
+  values[3] = -1;
+  auto err = gpiod_chip_get_lines(chip, offsets, 4, &lines);
+  if(err)
+  {
+    perror("gpiod_chip_get_lines");
+    gpio_cleanup();
+    return -2;
+  }
 
-	memset(&config, 0, sizeof(config));
-	config.consumer = "devestar";
-	config.request_type = GPIOD_LINE_REQUEST_DIRECTION_INPUT;
-	config.flags = 0;
+  memset(&config, 0, sizeof(config));
+  config.consumer = "devestar";
+  config.request_type = GPIOD_LINE_REQUEST_DIRECTION_INPUT;
+  config.flags = 0;
 
-	// open lines for input
-	err = gpiod_line_request_bulk(&lines, &config, values);
-	if(err)
-	{
-		perror("gpiod_line_request_bulk");
-		gpio_cleanup();
-		return -3;
-	}
+  // open lines for input
+  err = gpiod_line_request_bulk(&lines, &config, values);
+  if(err)
+  {
+    perror("gpiod_line_request_bulk");
+    gpio_cleanup();
+    return -3;
+  }
 
+  const float width = 510.0f;
+  const float height = 260.0f;
 
-
-
-
-	const float width = 510.0f;
-	const float height = 260.0f;
-
-	// Read in camera calibration calibration
-	cv::FileStorage fs("calib.yml", cv::FileStorage::READ);
-	cv::Mat cameraMatrix;
-	cv::Mat distCoeffs;
-	fs["camera_matrix"] >> cameraMatrix;
-	fs["dist_coeffs"] >> distCoeffs;
-
-
-	// setup videocapture
-	cv::VideoCapture inputVideo;
-	inputVideo.open(0);
-	inputVideo.set(cv::CAP_PROP_FRAME_WIDTH, 640);
-	inputVideo.set(cv::CAP_PROP_FRAME_HEIGHT, 480);
+  // Read in camera calibration calibration
+  cv::FileStorage fs(calibPath, cv::FileStorage::READ);
+  cv::Mat cameraMatrix;
+  cv::Mat distCoeffs;
+  fs["camera_matrix"] >> cameraMatrix;
+  fs["dist_coeffs"] >> distCoeffs;
 
 
-	// Setup object points
-	std::vector<cv::Point3f> worldPoints;
-	worldPoints.push_back(cv::Point3f(0, 0, 0));
-	worldPoints.push_back(cv::Point3f(width, 0, 0));
-	worldPoints.push_back(cv::Point3f(0, height, 0));
-	worldPoints.push_back(cv::Point3f(width, height, 0));
-	// setup rectangle for intersection test
-	cv::Vec3f S1, S2, P0;
-	P0[0] = worldPoints[0].x;
-	P0[1] = worldPoints[0].y;
-	P0[2] = worldPoints[0].z;
+  // setup videocapture
+  cv::VideoCapture inputVideo;
+  inputVideo.open(0);
+  inputVideo.set(cv::CAP_PROP_FRAME_WIDTH, 640);
+  inputVideo.set(cv::CAP_PROP_FRAME_HEIGHT, 480);
 
-	S1[0] = worldPoints[1].x - P0[0];
-	S1[1] = worldPoints[1].y - P0[1];
-	S1[2] = worldPoints[1].z - P0[2];
-	S1 = cv::normalize(S1);
 
-	S2[0] = worldPoints[2].x - P0[0];
-	S2[1] = worldPoints[2].y - P0[1];
-	S2[2] = worldPoints[2].z - P0[2];
-	S2 = cv::normalize(S2);
+  // Setup object points
+  std::vector<cv::Point3f> worldPoints;
+  worldPoints.push_back(cv::Point3f(0, 0, 0));
+  worldPoints.push_back(cv::Point3f(width, 0, 0));
+  worldPoints.push_back(cv::Point3f(0, height, 0));
+  worldPoints.push_back(cv::Point3f(width, height, 0));
+  // setup rectangle for intersection test
+  cv::Vec3f S1, S2, P0;
+  P0[0] = worldPoints[0].x;
+  P0[1] = worldPoints[0].y;
+  P0[2] = worldPoints[0].z;
+
+  S1[0] = worldPoints[1].x - P0[0];
+  S1[1] = worldPoints[1].y - P0[1];
+  S1[2] = worldPoints[1].z - P0[2];
+  S1 = cv::normalize(S1);
+
+  S2[0] = worldPoints[2].x - P0[0];
+  S2[1] = worldPoints[2].y - P0[1];
+  S2[2] = worldPoints[2].z - P0[2];
+  S2 = cv::normalize(S2);
 
 #ifdef SHOW_3D
-	glutInit(&argc, argv);
-	init3d(worldPoints);
+  glutInit(&argc, argv);
+  init3d(worldPoints);
 #endif
 
-	// setup serial communication
-	struct termios serial;
-	char buffer[BUFFER_SIZE];
+  // setup serial communication
+  struct termios serial;
+  char buffer[BUFFER_SIZE];
 
-	// not controlling TTY.  
-	bool serialPortReady = true;
-	int fd = open( SERIAL_DEVICE, O_RDWR | O_NOCTTY | O_NDELAY);
-	if( fd < 0 ) {
-		std::cerr << "Unable to open serial" << std::endl;
-		perror( SERIAL_DEVICE );
-		serialPortReady = false;
-	}
-	auto result = tcgetattr( fd, & serial );
-	if( result < 0 ) {
-		std::cerr << "Unable to get serial attributes" << std::endl;
-		serialPortReady = false;
-	}
+  // not controlling TTY.  
+  bool serialPortReady = true;
+  int fd = open( SERIAL_DEVICE, O_RDWR | O_NOCTTY | O_NDELAY);
+  if( fd < 0 ) {
+    std::cerr << "Unable to open serial" << std::endl;
+    perror( SERIAL_DEVICE );
+    serialPortReady = false;
+  }
+  auto result = tcgetattr( fd, & serial );
+  if( result < 0 ) {
+    std::cerr << "Unable to get serial attributes" << std::endl;
+    serialPortReady = false;
+  }
 
-	// Set up Serial Configuration
-	cfmakeraw(&serial);
+  // Set up Serial Configuration
+  cfmakeraw(&serial);
 
-	serial.c_cflag |= (CLOCAL | CREAD);
-	serial.c_iflag &= ~(IXOFF | IXANY);
+  serial.c_cflag |= (CLOCAL | CREAD);
+  serial.c_iflag &= ~(IXOFF | IXANY);
 
-	serial.c_cc[VMIN] = 0;
-	serial.c_cc[VTIME] = 0;
+  serial.c_cc[VMIN] = 0;
+  serial.c_cc[VTIME] = 0;
 
-	cfsetispeed(&serial, B9600);
-	cfsetospeed(&serial, B9600);
+  cfsetispeed(&serial, B9600);
+  cfsetospeed(&serial, B9600);
 
-	tcsetattr(fd, TCSANOW, &serial); // Apply configuration	
+  tcsetattr(fd, TCSANOW, &serial); // Apply configuration	
 
-	// setup processing variables
-	std::vector<cv::Point2f> centers;
-	centers.resize(4);
-	cv::Mat frame;
-	cv::Mat gray;
-	cv::Mat thresh;
-	cv::Mat displayCopy;
-	unsigned char offscreen[] = { 0xFF, 0xFF, 0x00 };
-	unsigned char xyb[3];
-	unsigned char buttons = 0;
+  // setup processing variables
+  std::vector<cv::Point2f> centers;
+  centers.resize(4);
+  cv::Mat frame;
+  cv::Mat gray;
+  cv::Mat thresh;
+  cv::Mat displayCopy;
+  unsigned char offscreen[] = { 0xFF, 0xFF, 0x00 };
+  unsigned char xyb[3];
+  unsigned char buttons = 0;
 
-	// look at the cmameras
-	cv::Point2f pt;
-	while (true) {
+  // look at the cmameras
+  cv::Point2f pt;
+  while (true) {
 #ifdef SHOW_3D
-		glutMainLoopEvent();
+    glutMainLoopEvent();
 #endif
-		// Process buttons
-		buttons = 0;
-		err = gpiod_line_get_value_bulk(&lines, values);
-		if( !values[0] ) {
-			buttons |= 0x01;
-		}
-		if( !values[1] ) {
-			buttons |= 0x02;
-		}
-		if( !values[2] ) {
-			buttons |= 0x04;
-		}
-		if( !values[3] ) {
-			buttons |= 0x08;
-		}
-		if(err)
-		{
-			perror("gpiod_line_get_value_bulk");
-			gpio_cleanup();
-			return -4;
-		}
+    // Process buttons
+    buttons = 0;
+    err = gpiod_line_get_value_bulk(&lines, values);
+    if( !values[0] ) {
+      buttons |= 0x01;
+    }
+    if( !values[1] ) {
+      buttons |= 0x02;
+    }
+    if( !values[2] ) {
+      buttons |= 0x04;
+    }
+    if( !values[3] ) {
+      buttons |= 0x08;
+    }
+    if(err)
+    {
+      perror("gpiod_line_get_value_bulk");
+      gpio_cleanup();
+      return -4;
+    }
 
-		// Process Video
-		inputVideo >> frame;
+    // Process Video
+    inputVideo >> frame;
 
-		// cv to grey
-		cv::cvtColor( frame, gray, cv::COLOR_BGR2GRAY); 
+    // cv to grey
+    cv::cvtColor( frame, gray, cv::COLOR_BGR2GRAY); 
 
-		// threshold
-		cv::threshold( gray, thresh, 200, 255, cv::THRESH_BINARY);
-		std::vector< std::vector< cv::Point> > contours;
+    // threshold
+    cv::threshold( gray, thresh, 200, 255, cv::THRESH_BINARY);
+    std::vector< std::vector< cv::Point> > contours;
 
-		// look for IR lights
-		cv::findContours( thresh, contours, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
+    // look for IR lights
+    cv::findContours( thresh, contours, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
 
-		// process if we have at least 4 points
-		if (contours.size() >= 4) {
-			// compute moments to get centers.  
-			std::vector< cv::Moments > moments( contours.size() );
-			for( size_t i = 0; i < contours.size(); ++i ) {
-				moments[i] = cv::moments( contours[i] );
-			}
+    // process if we have at least 4 points
+    if (contours.size() >= 4) {
+      // compute moments to get centers.  
+      std::vector< cv::Moments > moments( contours.size() );
+      for( size_t i = 0; i < contours.size(); ++i ) {
+        moments[i] = cv::moments( contours[i] );
+      }
 
-			int current = 0;
-			for( size_t i = 0; i < contours.size(); ++i ) {
-				// using size cutoff to find 'good' candidates.  Look at other features like circularity, position, etc.
-				if( moments[i].m00 > 6 && moments[i].m00 < 250 ) {
-					centers[current] =  cv::Point2f( static_cast<float> ( moments[i].m10 / ( moments[i].m00 + 1e-5)), static_cast<float> ( moments[i].m01 / ( moments[i].m00 + 1e-5)) );
-					//#ifdef SHOW_CALC
-					//std::cout << "center[" << current << "] = " << centers[current] <<  " area: " << moments[i].m00 <<std::endl;
-					//#endif
-					++current;
-					if( current == 4 ) {
-						break;
-					}
-				}
-			}
+      int current = 0;
+      for( size_t i = 0; i < contours.size(); ++i ) {
+        // using size cutoff to find 'good' candidates.  Look at other features like circularity, position, etc.
+        if( moments[i].m00 > 6 && moments[i].m00 < 250 ) {
+          centers[current] =  cv::Point2f( static_cast<float> ( moments[i].m10 / ( moments[i].m00 + 1e-5)), static_cast<float> ( moments[i].m01 / ( moments[i].m00 + 1e-5)) );
+          //#ifdef SHOW_CALC
+          //std::cout << "center[" << current << "] = " << centers[current] <<  " area: " << moments[i].m00 <<std::endl;
+          //#endif
+          ++current;
+          if( current == 4 ) {
+            break;
+          }
+        }
+      }
 
-			////// DUMB REORDER | GET RID OF THIS ///////////////////
-			cv::Point2f a = centers[0];		
-			cv::Point2f b = centers[1];		
-			if( centers[3].x > centers[2].x ) {
-				centers[0] = centers[2];
-				centers[1] = centers[3];
-			} else {
-				centers[0] = centers[3];
-				centers[1] = centers[2];
-			}
-			if( b.x > a.x ) {
-				centers[2] = a;
-				centers[3] = b;
-			} else {
-				centers[2] = b;
-				centers[3] = a;
-			}
-			for( int i=0; i < centers.size(); ++i ) {
-				std::cout << "center[" << i << "] = " << centers[i] << std::endl;
-			}
-			////// DUMB REORDER | GET RID OF THIS ///////////////////
+      ////// DUMB REORDER | GET RID OF THIS ///////////////////
+      cv::Point2f a = centers[0];		
+      cv::Point2f b = centers[1];		
+      if( centers[3].x > centers[2].x ) {
+        centers[0] = centers[2];
+        centers[1] = centers[3];
+      } else {
+        centers[0] = centers[3];
+        centers[1] = centers[2];
+      }
+      if( b.x > a.x ) {
+        centers[2] = a;
+        centers[3] = b;
+      } else {
+        centers[2] = b;
+        centers[3] = a;
+      }
+      for( int i=0; i < centers.size(); ++i ) {
+        std::cout << "center[" << i << "] = " << centers[i] << std::endl;
+      }
+      ////// DUMB REORDER | GET RID OF THIS ///////////////////
 
 #ifdef SHOW_IMAGE
-			// display it
-			//cv::cvtColor( thresh, displayCopy, cv::COLOR_GRAY2BGR); 
-			displayCopy = frame.clone();
-			for( int i=0; i < centers.size(); ++ i ) {
-				// draw point on image
-				cv::Scalar color( 0,0,255 );
-				if( i > 1 ) {
-					// Green are the later two
-					color = cv::Scalar( 0,255,0 );
-					cv::circle( displayCopy, centers[i], 2.0f, color, 2.0f);
-				} else {
-					// RED
-					cv::circle( displayCopy, centers[i], 10.0f, color, 2.0f);
-				}
-			}
-			cv::circle( displayCopy, pt, 5.0f, cv::Scalar(0,255,255), 3.0f);
+      // display it
+      //cv::cvtColor( thresh, displayCopy, cv::COLOR_GRAY2BGR); 
+      displayCopy = frame.clone();
+      for( int i=0; i < centers.size(); ++ i ) {
+        // draw point on image
+        cv::Scalar color( 0,0,255 );
+        if( i > 1 ) {
+          // Green are the later two
+          color = cv::Scalar( 0,255,0 );
+          cv::circle( displayCopy, centers[i], 2.0f, color, 2.0f);
+        } else {
+          // RED
+          cv::circle( displayCopy, centers[i], 10.0f, color, 2.0f);
+        }
+      }
+      cv::circle( displayCopy, pt, 5.0f, cv::Scalar(0,255,255), 3.0f);
 
-			cv::imshow("points", displayCopy );
-			cv::waitKey(1);
+      cv::imshow("points", displayCopy );
+      cv::waitKey(1);
 #endif
 
-			// rvec- is the rotation vector
-			// tvec- is the translation vector 
-			cv::Mat rvec, tvec;
-			std::vector< cv::Mat > rvecs, tvecs;	
-			auto solveRet = cv::solvePnP(worldPoints, centers, cameraMatrix, distCoeffs, rvec, tvec, false, cv::SOLVEPNP_AP3P);
-			//auto solveRet = cv::solvePnPGeneric(worldPoints, centers, cameraMatrix, distCoeffs, rvecs, tvecs, false, cv::SOLVEPNP_AP3P, rvec, tvec);
-			if( solveRet ) {
-				std::cout << "solveRet: " << solveRet << std::endl;
-				//if( solveRet ) {
-				cv::Mat R;
-				cv::Rodrigues(rvec, R); // get rotation matrix R ( 3x3 ) from rotation vector 
-				R = R.t(); // inverse
-				tvec = -R * tvec; // translation of inverseA == actual camera position
+      // rvec- is the rotation vector
+      // tvec- is the translation vector 
+      cv::Mat rvec, tvec;
+      std::vector< cv::Mat > rvecs, tvecs;	
+      auto solveRet = cv::solvePnP(worldPoints, centers, cameraMatrix, distCoeffs, rvec, tvec, false, cv::SOLVEPNP_AP3P);
+      if( solveRet ) {
+        std::cout << "solveRet: " << solveRet << std::endl;
+        //if( solveRet ) {
+        cv::Mat R;
+        cv::Rodrigues(rvec, R); // get rotation matrix R ( 3x3 ) from rotation vector 
+        R = R.t(); // inverse
+        tvec = -R * tvec; // translation of inverseA == actual camera position
 
 
+        // compute itersection
+        cv::Vec3f Ray0,D;
+        Ray0[0] = tvec.at<double>(0);
+        Ray0[1] = tvec.at<double>(1);
+        Ray0[2] = tvec.at<double>(2);
 
-				// compute itersection
-				cv::Vec3f Ray0,D;
-				Ray0[0] = tvec.at<double>(0);
-				Ray0[1] = tvec.at<double>(1);
-				Ray0[2] = tvec.at<double>(2);
+        D[0] = R.at<double>(0, 2);
+        D[1] = R.at<double>(1, 2);
+        D[2] = R.at<double>(2, 2);
 
-				D[0] = R.at<double>(0, 2);
-				D[1] = R.at<double>(1, 2);
-				D[2] = R.at<double>(2, 2);
-
-				float u, v;
-				bool hit = intersectRect(Ray0, D, P0, S1, S2, width, height, u, v);
-				std::cout << "U: " << u << " V: " << v << " hit: " << hit << std::endl;
+        float u, v;
+        //bool hit = intersectRect(Ray0, D, P0, S1, S2, width, height, u, v);
+        computeUV(Ray0, D, P0, S1, S2, width, height, u, v);
 
 #ifdef SHOW_CALC
-				std::cout << "rvec: " << rvec << std::endl;	
-				std::cout << "tvec: " << tvec << std::endl;
-				std::cout << "R: " << R << std::endl;
-				std::cout << "inverse tvec: " << tvec << std::endl;
+        std::cout << "rvec: " << rvec << std::endl;	
+        std::cout << "tvec: " << tvec << std::endl;
+        std::cout << "R: " << R << std::endl;
+        std::cout << "inverse tvec: " << tvec << std::endl;
 
-				std::cout << "Ray0: " << Ray0 << std::endl;
-				std::cout << "D: " << D << std::endl;
-				std::cout << "P0: " << P0 << std::endl;
-				std::cout << "S1: " << S1 << std::endl;
-				std::cout << "S2: " << S2 << std::endl;
-				std::cout << "width: " << width  << std::endl;
-				std::cout << "height: " << height << std::endl;
+        std::cout << "Ray0: " << Ray0 << std::endl;
+        std::cout << "D: " << D << std::endl;
+        std::cout << "P0: " << P0 << std::endl;
+        std::cout << "S1: " << S1 << std::endl;
+        std::cout << "S2: " << S2 << std::endl;
+        std::cout << "width: " << width  << std::endl;
+        std::cout << "height: " << height << std::endl;
+        std::cout << "U: " << u << " V: " << v << " hit: " << hit << std::endl;
 #endif
+
+
 
 #ifdef SHOW_3D
-				update3d( tvec, R, u, v );
+        update3d( tvec, R, u, v );
 #endif
 
 
-				if( hit ) {
+        if( hit ) {
 #ifdef SHOW_IMAGE
-					cv::Point2f pt;
-					pt.x = (u/width) * 640.0f;
-					pt.y = (v/height) * 480.0f;
-					cv::circle( displayCopy, pt, 5.0f, cv::Scalar(0,255,255), 3.0f);
-					cv::imshow("points", displayCopy );
-					cv::waitKey(1);
+          cv::Point2f pt;
+          pt.x = (u/width) * 640.0f;
+          pt.y = (v/height) * 480.0f;
+          cv::circle( displayCopy, pt, 5.0f, cv::Scalar(0,255,255), 3.0f);
+          cv::imshow("points", displayCopy );
+          cv::waitKey(1);
 #endif
-					// from obvservation with delay4Cycles() on arduion
-					// X range is 73 to 269 : send 0 through 196
-					// Y range is 30 to 250 : send 0 through 220
+          // from obvservation with delay4Cycles() on arduion
+          // X range is 73 to 269 : send 0 through 196
+          // Y range is 30 to 250 : send 0 through 220
+          xyb[0] = (unsigned char)( ( u / width) * 196.0f  );
+          xyb[1] = (unsigned char)( ( v / height) * 220.0f  );
+          xyb[2] = buttons;
+          if(serialPortReady ) {
+            auto ret = write( fd, xyb, sizeof(xyb) );
+          }
+          continue;  // head back up the loop
+        } // if( hit ) 
+      } // if( solveRet ) 
 
-					xyb[0] = (unsigned char)( ( u / width) * 196.0f  );
-					xyb[1] = (unsigned char)( ( v / height) * 220.0f  );
-					xyb[2] = buttons;
-					if(serialPortReady ) {
-						auto ret = write( fd, xyb, sizeof(xyb) );
-					}
-					continue;  // head back up the loop
-				} // if( hit ) 
-			} // if( solveRet ) 
 
+      } // if (contours.size() >= 4) 
 
-			} // if (contours.size() >= 4) 
+      // send -1, -1 to arduino
+      if(serialPortReady ) {
+        offscreen[2] = buttons;
+        auto ret = write( fd, offscreen, sizeof(offscreen) );
+      }
 
-			// send -1, -1 to arduino
-			if(serialPortReady ) {
-				offscreen[2] = buttons;
-				auto ret = write( fd, offscreen, sizeof(offscreen) );
-			}
-
-		}// while(true)
-	}
+    }// while(true)
+  }
