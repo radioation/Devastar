@@ -14,6 +14,16 @@
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+#define USE_BLUETOOTH_SERIAL
+
+#ifdef USE_BLUETOOTH_SERIAL
+// Leonardo Bluetooth use real TX/TR
+#define SERIAL_COM Serial1
+#else
+// Use USB 
+#define SERIAL_COM Serial
+#endif
+
 
 // sync variables
 const int COMPOSITE_SYNC_1881 = 2;
@@ -30,7 +40,7 @@ const int S_PIN = 12;
 
 // offsets
 const int minY = 30;
-const int minX = 19;
+const int minX = 70;
 
 // input variables
 byte y = 140;  // line count
@@ -68,7 +78,7 @@ void verticalSyncInterrrupt() {
 
 void setup() {
   // serial communication
-  Serial.begin(9600);
+  SERIAL_COM.begin(9600);
 
   // Sync Splitter
   pinMode(COMPOSITE_SYNC_1881, INPUT);
@@ -93,11 +103,11 @@ void setup() {
 }
 
 void loop() {
-  if (Serial.available() > 2)
+  if (SERIAL_COM.available() > 2)
   {
-    x = Serial.read();
-    y = Serial.read();
-    buttons = Serial.read(); 
+    x = SERIAL_COM.read();
+    y = SERIAL_COM.read();
+    buttons = SERIAL_COM.read(); 
       // set buttons
     if ( buttons & 0x01 ) {
       digitalWrite(B_PIN, LOW);
