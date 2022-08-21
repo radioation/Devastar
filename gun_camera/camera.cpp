@@ -20,7 +20,7 @@
 
 #define BUFFER_SIZE 64
 #define BAUDRATE B38400            
-#define SERIAL_DEVICE "/dev/ttyACM0"
+#define DEFAULT_SERIAL_DEVICE "/dev/ttyACM0"
 
 //#define SHOW_IMAGE
 //#define SHOW_CALC
@@ -118,6 +118,16 @@ void gpio_cleanup() {
 
 int main(int argc, char* argv[] )
 {
+  // check configuration path
+  fs::path configPath("./config.yml");
+  std::string serialDevice = DEFAULT_SERIAL_DEVICE;
+  if( fs::exists( configPath ) ) {
+    cv::FileStorage fileStorage(configPath, cv::FileStorage::READ);
+    fileStorage["serial_device"] >> serialDevice;
+  }
+	std::cout << "Using " << serialDevice << "\n";
+
+  // check calibration path
   fs::path calibPath("./calib.yml");
   if( !fs::exists( calibPath ) ) {
     std::cerr << "No intrinsics calibration file found.  Please run ./bin/calibrate." << std::endl;
@@ -169,11 +179,11 @@ int main(int argc, char* argv[] )
   const float height = 260.0f;
 
   // Read in camera calibration calibration
-  cv::FileStorage fs(calibPath, cv::FileStorage::READ);
+  cv::FileStorage fileStorage(calibPath, cv::FileStorage::READ);
   cv::Mat cameraMatrix;
   cv::Mat distCoeffs;
-  fs["camera_matrix"] >> cameraMatrix;
-  fs["dist_coeffs"] >> distCoeffs;
+  fileStorage["camera_matrix"] >> cameraMatrix;
+  fileStorage["dist_coeffs"] >> distCoeffs;
 
 
   // setup videocapture
@@ -216,10 +226,10 @@ int main(int argc, char* argv[] )
 
   // not controlling TTY.  
   bool serialPortReady = true;
-  int fd = open( SERIAL_DEVICE, O_RDWR | O_NOCTTY | O_NDELAY);
+  int fd = open( serialDevice.c_str(), O_RDWR | O_NOCTTY | O_NDELAY);
   if( fd < 0 ) {
     std::cerr << "Unable to open serial" << std::endl;
-    perror( SERIAL_DEVICE );
+    perror( serialDevice.c_str() );
     serialPortReady = false;
   }
   auto result = tcgetattr( fd, & serial );
@@ -317,7 +327,7 @@ int main(int argc, char* argv[] )
         }
       }
 
-      ////// DUMB REORDER | GET RID OF THIS ///////////////////
+      //////  REORDER center //////////////////////////////
       cv::Point2f a = centers[0];		
       cv::Point2f b = centers[1];		
       if( centers[3].x > centers[2].x ) {
@@ -334,10 +344,11 @@ int main(int argc, char* argv[] )
         centers[2] = b;
         centers[3] = a;
       }
+      /*
       for( int i=0; i < centers.size(); ++i ) {
         std::cout << "center[" << i << "] = " << centers[i] << std::endl;
       }
-      ////// DUMB REORDER | GET RID OF THIS ///////////////////
+      */
 
 #ifdef SHOW_IMAGE
       // display it
@@ -367,7 +378,7 @@ int main(int argc, char* argv[] )
       std::vector< cv::Mat > rvecs, tvecs;	
       auto solveRet = cv::solvePnP(worldPoints, centers, cameraMatrix, distCoeffs, rvec, tvec, false, cv::SOLVEPNP_AP3P);
       if( solveRet ) {
-        std::cout << "solveRet: " << solveRet << std::endl;
+        //std::cout << "solveRet: " << solveRet << std::endl;
         //if( solveRet ) {
         cv::Mat R;
         cv::Rodrigues(rvec, R); // get rotation matrix R ( 3x3 ) from rotation vector 
@@ -386,8 +397,9 @@ int main(int argc, char* argv[] )
         D[2] = R.at<double>(2, 2);
 
         float u, v;
-        //bool hit = intersectRect(Ray0, D, P0, S1, S2, width, height, u, v);
-        computeUV(Ray0, D, P0, S1, S2, width, height, u, v);
+	//bool hit = false;
+        bool hit = intersectRect(Ray0, D, P0, S1, S2, width, height, u, v);
+        //computeUV(Ray0, D, P0, S1, S2, width, height, u, v);
 
 #ifdef SHOW_CALC
         std::cout << "rvec: " << rvec << std::endl;	
