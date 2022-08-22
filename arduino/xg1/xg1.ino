@@ -14,6 +14,16 @@
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+#define USE_BLUETOOTH_SERIAL
+
+#ifdef USE_BLUETOOTH_SERIAL
+// Leonardo Bluetooth use real TX/TR
+#define SERIAL_COM Serial1
+#else
+// Use USB 
+#define SERIAL_COM Serial
+#endif
+
 
 // sync variables
 const int COMPOSITE_SYNC_1881 = 2;
@@ -24,33 +34,15 @@ volatile int verticalLine = 0;
 const int ATARI_PIN_1 = 8;  // stick FWD is the light gun trigger
 const int ATARI_PIN_6 = 9;  // stick trigger and used to set the signal for the light gun
 
-  
 // offsets
-const int minY = 0;
-const int minX = 0;
+const int minY = 40;  // use 40-237:  40 gives me 17 and 237 gives me 115:  vertical range  197
+const int minX = 21;  // use 21-210:  21 gives me about 88, 210 gives me approx 30: horizontal range 189
+
 
 // input variables
-// changed y and x to figure out edges.
-// http://www.atarihq.com/atcomp/xegs.html
-// MattRatt says :
-//  Light gun values range from 0 to 227. 
-
-// You'll notice with your test program that GUN-Y only varies from about 17 to 115. 
-byte y = 170;  // line count ( 6  gives me about 0.  5 jumps to 130?. 
-               // use 40-237:  40 gives me 17 and 237 gives me 115.  
-
-//  horizontal readings are quite odd.  
-// Point the gun to the far left of the display and 
-// GUN-X will read about 88. Moving from left to right, 
-// the reading will reach 227 at about column 34. Then 
-// suddenly it drops to 0 and increases again to about 
-// 30 at column 39.
-byte x = 210;  // Simulate horizontal delay with delayX4Cycles() function
-// x =5 gives me about 73, 20x ~= 87 Go with 21 as the low end of the range
-// 100x ~= 159  , 160x ~=212, 175x seems to be the edge of it. I see it values like 1,2,225,226,227
-// 180x ~= 2-5, 200 ~= 20  210 seems to be the one to use
-// use 21-210:   ( 21 gives me about 88, 210 gives me approx 30 )
-
+byte y = 140;  // line count
+byte x = 200;  // Simulate TH delay
+byte buttons = 0;
 
 // modified delayMicroseconds to use the smallest possible wait
 // to increase horizontal resolution
@@ -73,9 +65,9 @@ void compositeSyncInterrrupt() {
     digitalWrite( ATARI_PIN_6, LOW );
     delayMicroseconds( 5 ); // arbitrary.
     digitalWrite( ATARI_PIN_6, HIGH );
-
   }
 }
+
 
 void verticalSyncInterrrupt() {
   verticalLine = 0;
@@ -83,7 +75,7 @@ void verticalSyncInterrrupt() {
 
 void setup() {
   // serial communication
-  Serial.begin(9600);
+  SERIAL_COM.begin(9600);
 
   // Sync Splitter
   pinMode(COMPOSITE_SYNC_1881, INPUT);
@@ -100,12 +92,19 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(VERTICAL_SYNC_1881), verticalSyncInterrrupt, RISING);
 }
 
-void loop() { 
-  // pull the trigger every once in awhile
-  delay(2000);
-  digitalWrite(ATARI_PIN_1, LOW);
-  digitalWrite(ATARI_PIN_6, LOW);
-  delay(500);
-  digitalWrite(ATARI_PIN_1, HIGH);
-  digitalWrite(ATARI_PIN_6, HIGH);
+void loop() {
+  if (SERIAL_COM.available() > 2)
+  {
+    x = SERIAL_COM.read();
+    y = SERIAL_COM.read();
+    buttons = SERIAL_COM.read(); 
+    // set buttons
+    if ( buttons & 0x01 ) {
+      digitalWrite(ATARI_PIN_1, LOW);
+    } else {
+      digitalWrite(ATARI_PIN_1, HIGH);
+    }
+
+  }
+
 }
