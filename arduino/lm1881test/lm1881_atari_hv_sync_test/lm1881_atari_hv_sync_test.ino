@@ -36,7 +36,7 @@ const int minX = 0;
 //  Light gun values range from 0 to 227. 
 
 // You'll notice with your test program that GUN-Y only varies from about 17 to 115. 
-byte y = 170;  // line count ( 6  gives me about 0.  5 jumps to 130?. 
+byte y = 230;  // line count ( 6  gives me about 0.  5 jumps to 130?. 
                // use 40-237:  40 gives me 17 and 237 gives me 115.  
 
 //  horizontal readings are quite odd.  
@@ -45,7 +45,7 @@ byte y = 170;  // line count ( 6  gives me about 0.  5 jumps to 130?.
 // the reading will reach 227 at about column 34. Then 
 // suddenly it drops to 0 and increases again to about 
 // 30 at column 39.
-byte x = 210;  // Simulate horizontal delay with delayX4Cycles() function
+byte x = 100;  // Simulate horizontal delay with delayX4Cycles() function
 // x =5 gives me about 73, 20x ~= 87 Go with 21 as the low end of the range
 // 100x ~= 159  , 160x ~=212, 175x seems to be the edge of it. I see it values like 1,2,225,226,227
 // 180x ~= 2-5, 200 ~= 20  210 seems to be the one to use
