@@ -1,9 +1,11 @@
 # Devastar
 This project is an attempt to create a flatscreen lightgun to work with my Sega Menacer game (and any other console and games)
 
-THe project is still in its early stages and will be a while before I release the circuitry.  
+The project is still in its early stages and will be a while before I release the circuitry.  
 
+It's now usable, but needs some refinement.  
 [![IR Menacer](https://img.youtube.com/vi/hTlZYFlo4qI/0.jpg)](https://www.youtube.com/watch?v=hTlZYFlo4qI)
+[![IR Atari XG-1](https://img.youtube.com/vi/AgynEI8CHoo/0.jpg)](https://www.youtube.com/watch?v=AgynEI8CHoo)
 
 
 # License 
@@ -46,7 +48,7 @@ void delayX4Cycles(unsigned int c)
 ~~~
 
 This gave me an on-screen X range of about 73 to 269 or 196 steps.  Which
-is probably good enough.
+is probably OK considering the resoultion of the games. 
 
 
 
