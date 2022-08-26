@@ -1,7 +1,10 @@
 # Devastar
-This project is an attempt to create a flatscreen lightgun to work with my Sega Menacer game (and any other Menacer game if I get it to work)
+This project is an attempt to create a flatscreen lightgun to work with my Sega Menacer game (and any other console and games)
 
-It is currently in its early stages and will be a while before it becomes usable.
+THe project is still in its early stages and will be a while before I release the circuitry.  
+
+[![IR Menacer](https://img.youtube.com/vi/hTlZYFlo4qI/0.jpg)](https://www.youtube.com/watch?v=hTlZYFlo4qI)
+
 
 # License 
 Most of the files here are MIT licensed.  The arduino meancer.ino file is LGPL.
