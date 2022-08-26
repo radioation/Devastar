@@ -99,7 +99,7 @@ void loop() {
     y = SERIAL_COM.read();
     buttons = SERIAL_COM.read(); 
     // set buttons
-    if ( buttons & 0x01 ) {
+    if ( buttons & 0x02 ) {
       digitalWrite(ATARI_PIN_1, LOW);
     } else {
       digitalWrite(ATARI_PIN_1, HIGH);
