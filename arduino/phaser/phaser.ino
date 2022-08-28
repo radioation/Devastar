@@ -59,16 +59,19 @@ void delayX4Cycles(unsigned int c)
   );
 }
 
+
 void compositeSyncInterrrupt() {
-  verticalLine++;
-  if ( verticalLine == minY + y ) { // && x != 255 ) {
+  verticalLine++; 
+  //if ( verticalLine == minY + y ) {  
+  // apparently we need to have more than one line
+  if ( verticalLine >= minY + y && verticalLine < minY + y + 7 ) {  
     delayX4Cycles(minX + x);
-    digitalWrite( PHASER_PIN_7, LOW );
+    digitalWrite( PHASER_PIN_7, LOW ); // TH active is 0
     delayMicroseconds( 5 ); // arbitrary.
-    digitalWrite( PHASER_PIN_7, HIGH );
+   digitalWrite( PHASER_PIN_7, HIGH );
+  //Serial.println(verticalLine);
   }
 }
-
 
 void verticalSyncInterrrupt() {
   verticalLine = 0;
