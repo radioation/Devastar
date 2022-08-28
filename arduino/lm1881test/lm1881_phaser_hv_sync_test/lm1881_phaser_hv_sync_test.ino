@@ -21,8 +21,8 @@ const int VERTICAL_SYNC_1881 = 3;
 volatile int verticalLine = 0;
 
 // controller pins
-const int PHASER_PIN_7 = 8;  // TL is the light gun trigger
-const int PHASER_PIN_6 = 9;  // TH and used to set the signal for the light gun
+const int PHASER_PIN_7 = 8;  // TH and used to set the signal for the light gun
+const int PHASER_PIN_6 = 9;  // TL is the light gun trigger
 
   
 // offsets
