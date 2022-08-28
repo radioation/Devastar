@@ -104,8 +104,6 @@ void loop() {
   // pull the trigger every once in awhile
   delay(2000);
   digitalWrite(ATARI_PIN_1, LOW);
-  digitalWrite(ATARI_PIN_6, LOW);
   delay(500);
   digitalWrite(ATARI_PIN_1, HIGH);
-  digitalWrite(ATARI_PIN_6, HIGH);
 }
