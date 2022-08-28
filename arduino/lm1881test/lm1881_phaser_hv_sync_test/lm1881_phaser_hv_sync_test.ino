@@ -28,11 +28,11 @@ const int PHASER_PIN_6 = 9;  // TH and used to set the signal for the light gun
 // offsets
 const int minY = 0;
 const int minX = 0;
- 
-byte y = 230;  //  
 
-
-byte x = 100;
+byte y = 136; // 24 appears to be the top of the screen, 247 the bottom  ( 247 -24  = 223  range )
+// My SMS Phaser appears to return 30 through 180 when I pan
+// across my TV screen in H32 mode.   so about 150 values over 320 pixels
+byte x = 193; // 15 appears to give me about 30, 193 gets me to about 180  ( 193-15 = 178 range )
 
 // modified delayMicroseconds to use the smallest possible wait
 // to increase horizontal resolution
