@@ -120,12 +120,32 @@ int main(int argc, char* argv[] )
 {
   // check configuration path
   fs::path configPath("./config.yml");
+
   std::string serialDevice = DEFAULT_SERIAL_DEVICE;
+  // from obvservation with delay4Cycles() on arduino
+  // Menacer
+  // X range is 73 to 269 : send 0 through 196
+  // Y range is 30 to 250 : send 0 through 220
+  // XG-1
+  // X range is 40 to 237 : send 0 through 197
+  // Y range is 21 to 210 : send 0 through 189
+  float xRange = 196.0f;
+  float yRange = 220.0f;
+  float xMin = 0.0f;
+  float yMin = 0.0f;
   if( fs::exists( configPath ) ) {
     cv::FileStorage fileStorage(configPath, cv::FileStorage::READ);
     fileStorage["serial_device"] >> serialDevice;
+    fileStorage["x_range"] >> xRange;
+    fileStorage["y_range"] >> yRange;
+    fileStorage["x_min"] >> xMin;
+    fileStorage["y_min"] >> yMin;
   }
-	std::cout << "Using " << serialDevice << "\n";
+  std::cout << "Using: serial device: " << serialDevice << "\n";
+  std::cout << " X-Range: " << xRange << "\n";
+  std::cout << " Y-Range: " << yRange << "\n";
+  std::cout << " X-Min: " << xMin << "\n";
+  std::cout << " Y-Min: " << yMin << "\n";
 
   // check calibration path
   fs::path calibPath("./calib.yml");
@@ -423,6 +443,7 @@ int main(int argc, char* argv[] )
         update3d( tvec, R, u, v );
 #endif
 
+     std::cout << "ready: " << serialPortReady << " hit: " << hit << " x: " << (int)xyb[0] << " y: " << (int)xyb [1] << " buttons: " << (int)xyb[2] << std::endl;
 
         if( hit ) {
 #ifdef SHOW_IMAGE
@@ -433,11 +454,8 @@ int main(int argc, char* argv[] )
           cv::imshow("points", displayCopy );
           cv::waitKey(1);
 #endif
-          // from obvservation with delay4Cycles() on arduion
-          // X range is 73 to 269 : send 0 through 196
-          // Y range is 30 to 250 : send 0 through 220
-          xyb[0] = (unsigned char)( ( u / width) * 196.0f  );
-          xyb[1] = (unsigned char)( ( v / height) * 220.0f  );
+          xyb[0] = (unsigned char)( ( u / width) * xRange  );
+          xyb[1] = (unsigned char)( ( v / height) * yRange  );
           xyb[2] = buttons;
           if(serialPortReady ) {
             auto ret = write( fd, xyb, sizeof(xyb) );
