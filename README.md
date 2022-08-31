@@ -5,7 +5,8 @@ The project is still in its early stages and it will be a while before I release
 
 It's now usable, but needs some refinement.  
 [![IR Menacer](https://img.youtube.com/vi/hTlZYFlo4qI/0.jpg)](https://www.youtube.com/watch?v=hTlZYFlo4qI)
-[![IR Atari XG-1](https://img.youtube.com/vi/AgynEI8CHoo/0.jpg)](https://www.youtube.com/watch?v=AgynEI8CHoo)
+[![IR Atari XG-1](https://img.youtube.com/vi/NhuL7JiWjTw/0.jpg)](https://www.youtube.com/watch?v=NhuL7JiWjTw)
+[![IR Phaser](https://img.youtube.com/vi/S2LcZB0aXFM/0.jpg)](https://www.youtube.com/watch?v=S2LcZB0aXFM)
 
 
 # License 
