@@ -14,6 +14,16 @@
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+#define USE_BLUETOOTH_SERIAL
+
+#ifdef USE_BLUETOOTH_SERIAL
+// Leonardo Bluetooth use real TX/TR
+#define SERIAL_COM Serial1
+#else
+// Use USB 
+#define SERIAL_COM Serial
+#endif
+
 
 // sync variables
 const int COMPOSITE_SYNC_1881 = 2;
@@ -24,20 +34,16 @@ volatile int verticalLine = 0;
 const int PHASER_PIN_7 = 8;  // TH and used to set the signal for the light gun
 const int PHASER_PIN_6 = 9;  // TL is the light gun trigger
 
-  
 // offsets
-const int minY = 0;
-const int minX = 0;
-
-byte y = 124; //  SGDK: 24 appears to be the top of the screen, 247 the bottom  ( 247 -24  = 223  range )
-// Shooting gallary  ~32 is the top of the playfield, ~230 is the bottom ( 230 -32 = 198 range. but would need offset due to border)
+const int minY = 24; // 24 appears to be the top of the screen, 247 the bottom  ( 247 -24  = 223  range )
+const int minX = 15; // 15 appears to give me about 30, 193 gets me to about 180  ( 193-15 = 178 range )
 
 
-// My SGDK test with SMS Phaser appears to return 30 through 180 when I pan
-// across my TV screen in H32 mode.   so about 150 values over 320 pixels
-byte x = 100; // 15 appears to give me about 30, 193 gets me to about 180  ( 193-15 = 178 range )
-// Shooting gallary  ~22 is the left of the playfield, ~170 is the bottom ( 187 -22 = 165 range. but would need offset due to border)
+// input variables
 
+byte y = 112;  // line count
+byte x = 89;   // Simulate TH delay
+byte buttons = 0;
 
 // modified delayMicroseconds to use the smallest possible wait
 // to increase horizontal resolution
@@ -73,7 +79,7 @@ void verticalSyncInterrrupt() {
 
 void setup() {
   // serial communication
-  Serial.begin(9600);
+  SERIAL_COM.begin(9600);
 
   // Sync Splitter
   pinMode(COMPOSITE_SYNC_1881, INPUT);
@@ -82,19 +88,27 @@ void setup() {
   // controller pins 
   pinMode(PHASER_PIN_7, OUTPUT);
   pinMode(PHASER_PIN_6, OUTPUT); 
-  digitalWrite(PHASER_PIN_7, LOW);
-  digitalWrite(PHASER_PIN_6, LOW);
+  digitalWrite(PHASER_PIN_7, HIGH);
+  digitalWrite(PHASER_PIN_6, HIGH);
 
   // interrupts
   attachInterrupt(digitalPinToInterrupt(COMPOSITE_SYNC_1881), compositeSyncInterrrupt, RISING);
   attachInterrupt(digitalPinToInterrupt(VERTICAL_SYNC_1881), verticalSyncInterrrupt, RISING);
 }
 
-void loop() { 
-  Serial.println(verticalLine);
-  // pull the trigger every once in awhile
-  delay(500);
-  digitalWrite(PHASER_PIN_6, HIGH); 
-  delay(500);
-  digitalWrite(PHASER_PIN_6, LOW); 
+void loop() {
+  if (SERIAL_COM.available() > 2)
+  {
+    x = SERIAL_COM.read();
+    y = SERIAL_COM.read();
+    buttons = SERIAL_COM.read(); 
+    // set buttons
+    if ( buttons & 0x02 ) {
+      digitalWrite(PHASER_PIN_6, LOW);  // phaser pins are active low https://allpinouts.org/pinouts/connectors/input_device/sega-master-system-light-phaser-3050/
+    } else {
+      digitalWrite(PHASER_PIN_6, HIGH);
+    }
+
+  }
+
 }
