@@ -1,6 +1,36 @@
 #include <genesis.h>
 #include "resources.h"
 
+u16 crosshairsMode = 0; // 0 raw values, 1 use X lookup
+static fix32 xLookup[256]; // full range for JOY_readJoypadX()
+
+static void calculateXLookup()
+{
+	// My SMS Phaser appears to return 30 through 180 when I pan
+	// across my TV screen in H32 mode.   so about 150 values over 320 pixels
+	fix32 pos = FIX32(0);
+	for (int i = 30; i < 180; ++i)
+	{
+		xLookup[i] = pos;
+		pos = fix32Add(pos, FIX32(2.13333));
+	}
+}
+
+static void joypadHandler(u16 joypadId, u16 changed, u16 joypadState)
+{
+	// standard controller handles modes
+	if (joypadId == JOY_1)
+	{
+		if (changed == BUTTON_A && joypadState == BUTTON_A)
+		{
+			++crosshairsMode;
+			if (crosshairsMode > 1)
+			{
+				crosshairsMode = 0;
+			}
+		}
+	}
+}
 
 int main()
 {
@@ -36,10 +66,12 @@ int main()
 																				 FALSE,				 // flip the sprite vertically?
 																				 FALSE				 // flip the sprite horizontally
 																				 ));
+	SPR_setPosition( targetSprite, fix32ToInt( targetPosX ), fix32ToInt( targetPosY ) );
 
 	///////////////////////////////////////////////////////////////////////////////////
 	// Phaser Setup
-	//
+	// create lookup table
+	calculateXLookup();	
 
 	// Set background brighter than 0.	darker backgrounds
 	// prevent Phaser from returning X, Y values.
@@ -50,6 +82,10 @@ int main()
 	// Can't check for phaser with JOY_getPortType().  Just assume we've got a Phaser attached to Port 2
 	JOY_setSupport(PORT_2, JOY_SUPPORT_PHASER);
 
+	VDP_drawText("Press A to change drawing mode", 5, 5);
+
+	// Asynchronous joystick handler.
+	JOY_setEventHandler(joypadHandler);
 
 	///////////////////////////////////////////////////////////////////////////////////
 	// Main Loop!
@@ -59,11 +95,11 @@ int main()
 		u16 value = JOY_readJoypad(JOY_2);
 		if (value & BUTTON_A)
 		{
-			VDP_drawText("A", 18, 9);
+			VDP_drawText("A: ON", 18, 9);
 		}
 		else
 		{
-			VDP_drawText(" ", 18, 9);
+			VDP_drawText("A:   ", 18, 9);
 		}
 
 		// H32 mode.
@@ -73,12 +109,25 @@ int main()
 		char message[40];
 		sprintf(message, "Phaser Values x:%d, y:%d      ", xVal, yVal);
 		VDP_drawText(message, 7, 7);
-		
-		crosshairsPosX = fix32Mul(FIX32(xVal), FIX32(2.52));
-		crosshairsPosY = FIX32(yVal - 8);
+
+		// set crosshairs position. Subtract 8 from each to compensate for 16x16 sprite
+		switch (crosshairsMode)
+		{
+		case 0: // raw
+			VDP_drawText("   Render raw joypad values   ", 5, 5);
+			crosshairsPosX = fix32Mul(FIX32(xVal), FIX32(2.52));
+			crosshairsPosY = FIX32(yVal - 8);
+			break;
+		case 1: // with lookup
+			VDP_drawText("   Render with lookup table   ", 5, 5);
+			crosshairsPosX = fix32Sub(xLookup[xVal], FIX32(8));
+			crosshairsPosY = fix32Sub(FIX32(yVal), FIX32(8));
+			break;
+		default:
+			break;
+		}
 
 		// Set the Sprite Positions.
-		// SPR_setPosition( targetSprite, fix32ToInt( targetPosX ), fix32ToInt( targetPosY ) );
 		SPR_setPosition(crosshairsSprite, fix32ToInt(crosshairsPosX), fix32ToInt(crosshairsPosY));
 		SPR_update();
 
