@@ -3,6 +3,7 @@
 #include <opencv2/aruco/charuco.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
+#include <chrono>
 
 #include <gpiod.h>
 
@@ -118,6 +119,9 @@ void gpio_cleanup() {
 
 int main(int argc, char* argv[] )
 {
+
+
+
   // check configuration path
   fs::path configPath("./config.yml");
 
@@ -319,20 +323,33 @@ int main(int argc, char* argv[] )
     }
 
     // Process Video
+    auto startTime = std::chrono::steady_clock::now();
     inputVideo >> frame;
-
+    auto endTime = std::chrono::steady_clock::now();
+    std::cout << "ELAPSED TIME>> frame grab: " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
     // cv to grey
+    startTime = std::chrono::steady_clock::now();
     cv::cvtColor( frame, gray, cv::COLOR_BGR2GRAY); 
+    endTime = std::chrono::steady_clock::now();
+    std::cout << "ELAPSED TIME>> cvtColor(): " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
 
     // threshold
+    startTime = std::chrono::steady_clock::now();
     cv::threshold( gray, thresh, 200, 255, cv::THRESH_BINARY);
+    endTime = std::chrono::steady_clock::now();
+    std::cout << "ELAPSED TIME>> cv::threshold(): " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
     std::vector< std::vector< cv::Point> > contours;
 
     // look for IR lights
+    startTime = std::chrono::steady_clock::now();
     cv::findContours( thresh, contours, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
+    endTime = std::chrono::steady_clock::now();
+    std::cout << "ELAPSED TIME>> cv::findContours(): " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
 
     // process if we have at least 4 points
+    startTime = std::chrono::steady_clock::now();
     if (contours.size() >= 4) {
+      startTime = std::chrono::steady_clock::now();
       // compute moments to get centers.  
       std::vector< cv::Moments > moments( contours.size() );
       for( size_t i = 0; i < contours.size(); ++i ) {
@@ -353,8 +370,11 @@ int main(int argc, char* argv[] )
           }
         }
       }
+      endTime = std::chrono::steady_clock::now();
+      std::cout << "ELAPSED TIME>> get centers from moments: " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
 
       //////  REORDER center //////////////////////////////
+      startTime = std::chrono::steady_clock::now();
       cv::Point2f a = centers[0];		
       cv::Point2f b = centers[1];		
       if( centers[3].x > centers[2].x ) {
@@ -371,6 +391,8 @@ int main(int argc, char* argv[] )
         centers[2] = b;
         centers[3] = a;
       }
+      endTime = std::chrono::steady_clock::now();
+      std::cout << "ELAPSED TIME>> rerder centers: " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
       /*
       for( int i=0; i < centers.size(); ++i ) {
         std::cout << "center[" << i << "] = " << centers[i] << std::endl;
@@ -403,7 +425,10 @@ int main(int argc, char* argv[] )
       // tvec- is the translation vector 
       cv::Mat rvec, tvec;
       std::vector< cv::Mat > rvecs, tvecs;	
+      startTime = std::chrono::steady_clock::now();
       auto solveRet = cv::solvePnP(worldPoints, centers, cameraMatrix, distCoeffs, rvec, tvec, false, cv::SOLVEPNP_AP3P);
+      endTime = std::chrono::steady_clock::now();
+      std::cout << "ELAPSED TIME>> solvePnP(): " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
       if( solveRet ) {
         //std::cout << "solveRet: " << solveRet << std::endl;
         //if( solveRet ) {
@@ -425,7 +450,10 @@ int main(int argc, char* argv[] )
 
         float u, v;
 	//bool hit = false;
+      	startTime = std::chrono::steady_clock::now();
         bool hit = intersectRect(Ray0, D, P0, S1, S2, width, height, u, v);
+      	endTime = std::chrono::steady_clock::now();
+      	std::cout << "ELAPSED TIME>> intersectRect(): " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
         //computeUV(Ray0, D, P0, S1, S2, width, height, u, v);
 
 #ifdef SHOW_CALC
