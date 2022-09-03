@@ -35,6 +35,13 @@ static void joypadHandler(u16 joypadId, u16 changed, u16 joypadState)
 int main()
 {
 
+	//////////////////////////////////////////////////////////////
+	// Setup background B
+	VDP_setPalette(PAL0, bg.palette->data);
+	int ind = TILE_USERINDEX;
+	VDP_drawImageEx(BG_B, &bg, TILE_ATTR_FULL(PAL0, FALSE, FALSE, FALSE, ind), 0, 0, FALSE, TRUE);
+
+
 	///////////////////////////////////////////////////////////////////////////////////
 	// Sprite Setup
 	Sprite *targetSprite = NULL;
@@ -82,7 +89,30 @@ int main()
 	// Can't check for phaser with JOY_getPortType().  Just assume we've got a Phaser attached to Port 2
 	JOY_setSupport(PORT_2, JOY_SUPPORT_PHASER);
 
+	///////////////////////////////////////////////////////////////////////////////////
+	// Draw text
 	VDP_drawText("Press A to change drawing mode", 5, 5);
+	char message[40];
+	// use intToStr() to print row numbers
+	for( s32 i=0; i < 28; ++i ) {
+		intToStr( i, message, 1 );
+		VDP_drawText( message, 0, i );
+	}
+
+	// use uintToStr() to print column numbers
+	for( u32 i=0; i < 40; ++i ) {
+		u32 tmp = i%10;
+		uintToStr( tmp, message, 1 );
+		// draw ones place
+		VDP_drawText( message, i, 0 );
+		// draw tens place
+		if( i > 0 ) {
+			if( tmp == 0 ) {
+				uintToStr( i/10, message, 1 );
+				VDP_drawText( message, i, 1 );
+			}
+		}
+	}
 
 	// Asynchronous joystick handler.
 	JOY_setEventHandler(joypadHandler);

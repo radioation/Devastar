@@ -35,6 +35,15 @@ static void calculateXLookup()
 
 int main()
 {
+
+
+	//////////////////////////////////////////////////////////////
+	// Setup background B
+	VDP_setPalette(PAL0, bg.palette->data);
+	int ind = TILE_USERINDEX;
+	VDP_drawImageEx(BG_B, &bg, TILE_ATTR_FULL(PAL0, FALSE, FALSE, FALSE, ind), 0, 0, FALSE, TRUE);
+
+
 	///////////////////////////////////////////////////////////////////////////////////
 	// Sprite Setup
 	Sprite *targetSprite = NULL;
@@ -86,17 +95,40 @@ int main()
 	{
 		JOY_setSupport(PORT_2, JOY_SUPPORT_MENACER);
 		menacerFound = TRUE;
-		VDP_drawText("Menacer FOUND!", 13, 1);
+		VDP_drawText("Menacer FOUND!", 13, 2);
 	}
 	else
 	{
-		VDP_drawText("Menacer NOT found.", 11, 1);
+		VDP_drawText("Menacer NOT found.", 11, 2);
 	}
 
 	VDP_drawText("A:", 18, 5);
 	VDP_drawText("B:", 18, 6);
 	VDP_drawText("C:", 18, 7);
 	VDP_drawText("START:", 14, 8);
+	char message[40];
+	// use intToStr() to print row numbers
+	for( s32 i=0; i < 28; ++i ) {
+		intToStr( i, message, 1 );
+		VDP_drawText( message, 0, i );
+	}
+
+	// use uintToStr() to print column numbers
+	for( u32 i=0; i < 40; ++i ) {
+		u32 tmp = i%10;
+		uintToStr( tmp, message, 1 );
+		// draw ones place
+		VDP_drawText( message, i, 0 );
+		// draw tens place
+		if( i > 0 ) {
+			if( tmp == 0 ) {
+				uintToStr( i/10, message, 1 );
+				VDP_drawText( message, i, 1 );
+			}
+		}
+	}
+
+
 	///////////////////////////////////////////////////////////////////////////////////
 	// Main Loop!
 	while (TRUE)
