@@ -126,6 +126,10 @@ int main(int argc, char* argv[] )
   fs::path configPath("./config.yml");
 
   std::string serialDevice = DEFAULT_SERIAL_DEVICE;
+
+
+  float irWidth = 510.0f;
+  float irHeight = 260.0f;
   // from obvservation with delay4Cycles() on arduino
   // Menacer
   // X range is 73 to 269 : send 0 through 196
@@ -133,27 +137,31 @@ int main(int argc, char* argv[] )
   // XG-1
   // X range is 40 to 237 : send 0 through 197
   // Y range is 21 to 210 : send 0 through 189
-  // Phaser
+  // Sega Light Phaser
   // X range is 24 to 247 : send 0 through 223
   // Y range is 15 to 193 : send 0 through 178
-  float xRange = 196.0f;
-  float yRange = 220.0f;
-  float xMin = 0.0f;
-  float yMin = 0.0f;
+  float outWidth = 196.0f;
+  float outHeight = 220.0f;
+  float outXMin = 0.0f;
+  float outYMin = 0.0f;
   if( fs::exists( configPath ) ) {
     cv::FileStorage fileStorage(configPath, cv::FileStorage::READ);
     fileStorage["serial_device"] >> serialDevice;
-    fileStorage["x_range"] >> xRange;
-    fileStorage["y_range"] >> yRange;
-    fileStorage["x_min"] >> xMin;
-    fileStorage["y_min"] >> yMin;
+    fileStorage["ir_width"] >> irWidth;
+    fileStorage["ir_height"] >> irHeight;
+    fileStorage["output_width"] >> outWidth;
+    fileStorage["output_height"] >> outHeight;
+    fileStorage["output_x_min"] >> outXMin;
+    fileStorage["output_y_min"] >> outYMin;
   }
   std::cout << "Using: serial device: " << serialDevice << "\n";
-  std::cout << " X-Range: " << xRange << "\n";
-  std::cout << " Y-Range: " << yRange << "\n";
-  std::cout << " X-Min: " << xMin << "\n";
-  std::cout << " Y-Min: " << yMin << "\n";
-	bool useShortData = xRange > 255 || yRange > 255;
+  std::cout << " ir_width: " << irWidth << "\n";
+  std::cout << " ir_height: " << irHeight << "\n";
+  std::cout << " output_width: " << outWidth << "\n";
+  std::cout << " output_height: " << outHeight << "\n";
+  std::cout << " output_x_min: " << outXMin << "\n";
+  std::cout << " output_y_min: " << outYMin << "\n";
+  bool useShortData = outWidth > 255 || outHeight > 255;
   std::cout << " useShortData: " << useShortData << "\n";
 
   // check calibration path
@@ -204,8 +212,6 @@ int main(int argc, char* argv[] )
     return -3;
   }
 
-  const float width = 510.0f;
-  const float height = 260.0f;
 
   // Read in camera calibration calibration
   cv::FileStorage fileStorage(calibPath, cv::FileStorage::READ);
@@ -225,9 +231,9 @@ int main(int argc, char* argv[] )
   // Setup object points
   std::vector<cv::Point3f> worldPoints;
   worldPoints.push_back(cv::Point3f(0, 0, 0));
-  worldPoints.push_back(cv::Point3f(width, 0, 0));
-  worldPoints.push_back(cv::Point3f(0, height, 0));
-  worldPoints.push_back(cv::Point3f(width, height, 0));
+  worldPoints.push_back(cv::Point3f(irWidth, 0, 0));
+  worldPoints.push_back(cv::Point3f(0, irHeight, 0));
+  worldPoints.push_back(cv::Point3f(irWidth, irHeight, 0));
   // setup rectangle for intersection test
   cv::Vec3f S1, S2, P0;
   P0[0] = worldPoints[0].x;
@@ -394,10 +400,10 @@ int main(int argc, char* argv[] )
       endTime = std::chrono::steady_clock::now();
       std::cout << "ELAPSED TIME>> rerder centers: " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
       /*
-      for( int i=0; i < centers.size(); ++i ) {
-        std::cout << "center[" << i << "] = " << centers[i] << std::endl;
-      }
-      */
+         for( int i=0; i < centers.size(); ++i ) {
+         std::cout << "center[" << i << "] = " << centers[i] << std::endl;
+         }
+         */
 
 #ifdef SHOW_IMAGE
       // display it
@@ -431,7 +437,6 @@ int main(int argc, char* argv[] )
       std::cout << "ELAPSED TIME>> solvePnP(): " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
       if( solveRet ) {
         //std::cout << "solveRet: " << solveRet << std::endl;
-        //if( solveRet ) {
         cv::Mat R;
         cv::Rodrigues(rvec, R); // get rotation matrix R ( 3x3 ) from rotation vector 
         R = R.t(); // inverse
@@ -449,12 +454,13 @@ int main(int argc, char* argv[] )
         D[2] = R.at<double>(2, 2);
 
         float u, v;
-	//bool hit = false;
-      	startTime = std::chrono::steady_clock::now();
-        bool hit = intersectRect(Ray0, D, P0, S1, S2, width, height, u, v);
-      	endTime = std::chrono::steady_clock::now();
-      	std::cout << "ELAPSED TIME>> intersectRect(): " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
-        //computeUV(Ray0, D, P0, S1, S2, width, height, u, v);
+        //bool hit = false;
+        startTime = std::chrono::steady_clock::now();
+        bool hit = intersectRect(Ray0, D, P0, S1, S2, irWidth, irHeight, u, v);
+        //computeUV(Ray0, D, P0, S1, S2, irWidth, irHeight, u, v);
+        endTime = std::chrono::steady_clock::now();
+        std::cout << "ELAPSED TIME>> intersectRect(): " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
+
 
 #ifdef SHOW_CALC
         std::cout << "rvec: " << rvec << std::endl;	
@@ -467,8 +473,8 @@ int main(int argc, char* argv[] )
         std::cout << "P0: " << P0 << std::endl;
         std::cout << "S1: " << S1 << std::endl;
         std::cout << "S2: " << S2 << std::endl;
-        std::cout << "width: " << width  << std::endl;
-        std::cout << "height: " << height << std::endl;
+        std::cout << "irWidth: " << irWidth  << std::endl;
+        std::cout << "irHeight: " << irHeight << std::endl;
         std::cout << "U: " << u << " V: " << v << " hit: " << hit << std::endl;
 #endif
 
@@ -484,22 +490,22 @@ int main(int argc, char* argv[] )
         if( hit ) {
 #ifdef SHOW_IMAGE
           cv::Point2f pt;
-          pt.x = (u/width) * 640.0f;
-          pt.y = (v/height) * 480.0f;
+          pt.x = (u/irWidth) * 640.0f;
+          pt.y = (v/irHeight) * 480.0f;
           cv::circle( displayCopy, pt, 5.0f, cv::Scalar(0,255,255), 3.0f);
           cv::imshow("points", displayCopy );
           cv::waitKey(1);
 #endif
           if( !useShortData ) {
-            xyb[0] = (unsigned char)( ( u / width) * xRange  );
-            xyb[1] = (unsigned char)( ( v / height) * yRange  );
+            xyb[0] = (unsigned char)( ( u / irWidth) * outWidth  );
+            xyb[1] = (unsigned char)( ( v / irHeight) * outHeight  );
             xyb[2] = buttons;
             if(serialPortReady ) {
               auto ret = write( fd, xyb, sizeof(xyb) );
             }
           } else {
-            sx = (unsigned short)( ( u / width) * xRange  );
-            sy = (unsigned char)( ( v / height) * yRange  );
+            sx = (unsigned short)( ( u / irWidth) * outWidth  );
+            sy = (unsigned char)( ( v / irHeight) * outHeight  );
             memcpy( xxyyb, &sx, sizeof( unsigned short ) ); 
             memcpy( xxyyb + sizeof(unsigned short) , &sy, sizeof( unsigned short ) ); 
             xxyyb[4] = buttons;
@@ -512,13 +518,16 @@ int main(int argc, char* argv[] )
       } // if( solveRet ) 
 
 
-      } // if (contours.size() >= 4) 
+    } // if (contours.size() >= 4) 
 
-      // send -1, -1 to arduino
-      if(serialPortReady ) {
+    // send -1, -1 to arduino
+    if(serialPortReady ) {
+      if( !useShortData ) {
         offscreen[2] = buttons;
         auto ret = write( fd, offscreen, sizeof(offscreen) );
+      } else {
       }
+    }
 
-    }// while(true)
-  }
+  }// while(true)
+}
