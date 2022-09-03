@@ -129,6 +129,9 @@ int main(int argc, char* argv[] )
   // XG-1
   // X range is 40 to 237 : send 0 through 197
   // Y range is 21 to 210 : send 0 through 189
+  // Phaser
+  // X range is 24 to 247 : send 0 through 223
+  // Y range is 15 to 193 : send 0 through 178
   float xRange = 196.0f;
   float yRange = 220.0f;
   float xMin = 0.0f;
@@ -146,6 +149,8 @@ int main(int argc, char* argv[] )
   std::cout << " Y-Range: " << yRange << "\n";
   std::cout << " X-Min: " << xMin << "\n";
   std::cout << " Y-Min: " << yMin << "\n";
+	bool useShortData = xRange > 255 || yRange > 255;
+  std::cout << " useShortData: " << useShortData << "\n";
 
   // check calibration path
   fs::path calibPath("./calib.yml");
@@ -281,6 +286,8 @@ int main(int argc, char* argv[] )
   cv::Mat displayCopy;
   unsigned char offscreen[] = { 0xFF, 0xFF, 0x00 };
   unsigned char xyb[3];
+  unsigned short sx, sy;
+  unsigned char xxyyb[5];
   unsigned char buttons = 0;
 
   // look at the cmameras
@@ -443,7 +450,8 @@ int main(int argc, char* argv[] )
         update3d( tvec, R, u, v );
 #endif
 
-     std::cout << "ready: " << serialPortReady << " hit: " << hit << " x: " << (int)xyb[0] << " y: " << (int)xyb [1] << " buttons: " << (int)xyb[2] << std::endl;
+        std::cout << "ready: " << serialPortReady << " hit: " << hit << " x: " << (int)xyb[0] << " y: " << (int)xyb [1] << " buttons: " << (int)xyb[2] << std::endl;
+
 
         if( hit ) {
 #ifdef SHOW_IMAGE
@@ -454,11 +462,22 @@ int main(int argc, char* argv[] )
           cv::imshow("points", displayCopy );
           cv::waitKey(1);
 #endif
-          xyb[0] = (unsigned char)( ( u / width) * xRange  );
-          xyb[1] = (unsigned char)( ( v / height) * yRange  );
-          xyb[2] = buttons;
-          if(serialPortReady ) {
-            auto ret = write( fd, xyb, sizeof(xyb) );
+          if( !useShortData ) {
+            xyb[0] = (unsigned char)( ( u / width) * xRange  );
+            xyb[1] = (unsigned char)( ( v / height) * yRange  );
+            xyb[2] = buttons;
+            if(serialPortReady ) {
+              auto ret = write( fd, xyb, sizeof(xyb) );
+            }
+          } else {
+            sx = (unsigned short)( ( u / width) * xRange  );
+            sy = (unsigned char)( ( v / height) * yRange  );
+            memcpy( xxyyb, &sx, sizeof( unsigned short ) ); 
+            memcpy( xxyyb + sizeof(unsigned short) , &sy, sizeof( unsigned short ) ); 
+            xxyyb[4] = buttons;
+            if(serialPortReady ) {
+              auto ret = write( fd, xyb, sizeof(xyb) );
+            }
           }
           continue;  // head back up the loop
         } // if( hit ) 
