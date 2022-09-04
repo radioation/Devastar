@@ -7,6 +7,7 @@
 
 #include <gpiod.h>
 
+#include <experimental/string_view>
 
 #include <iostream>
 #include <vector>
@@ -32,11 +33,17 @@
 namespace fs = std::filesystem;
 
 
+#include "aim_calib.h"
+#include "devastar_common.h"
+
 #ifdef SHOW_3D
 #include <GL/freeglut.h>
 void init3d( const std::vector<cv::Point3f>& worldPoints );
 void update3d( const cv::Mat& tvec, const cv::Mat& R, const float& u, const float& v  );
 #endif
+
+
+
 
 // intersect rectangle with a ray
 // * Ray is defined as R0 + t * D
@@ -74,6 +81,8 @@ bool intersectRect(const cv::Vec3f& R0, // ray start
   return (u >= 0 && u <= S1Len && v >= 0 && v <= S2Len);
 
 }
+
+
 
 void computeUV(const cv::Vec3f& R0, // ray start
     const cv::Vec3f& D, // ray direction 
@@ -117,17 +126,26 @@ void gpio_cleanup() {
 }
 
 
+
+
+
 int main(int argc, char* argv[] )
 {
-
-
-
+  int doCalibration = false;
+  if( argc > 0 ) {
+    // check argc
+    if( std::experimental::string_view( argv[1] ) == "calibrate" ) {
+      doCalibration = true;
+    } else {
+      std::cerr << "Usage: " << argv[0] << " [calibrate]\n";
+    }
+  }
   // check configuration path
   fs::path configPath("./config.yml");
 
   std::string serialDevice = DEFAULT_SERIAL_DEVICE;
 
-
+ 
   float irWidth = 510.0f;
   float irHeight = 260.0f;
   // from obvservation with delay4Cycles() on arduino
@@ -146,13 +164,28 @@ int main(int argc, char* argv[] )
   float outYMin = 0.0f;
   if( fs::exists( configPath ) ) {
     cv::FileStorage fileStorage(configPath, cv::FileStorage::READ);
-    fileStorage["serial_device"] >> serialDevice;
-    fileStorage["ir_width"] >> irWidth;
-    fileStorage["ir_height"] >> irHeight;
-    fileStorage["output_width"] >> outWidth;
-    fileStorage["output_height"] >> outHeight;
-    fileStorage["output_x_min"] >> outXMin;
-    fileStorage["output_y_min"] >> outYMin;
+    if(!fileStorage["serial_device"].empty() ) {
+      fileStorage["serial_device"] >> serialDevice;
+    }
+    if(!fileStorage["ir_width"].empty() ) {
+      fileStorage["ir_width"] >> irWidth;
+    }
+    if(!fileStorage["ir_height"].empty() ) {
+      fileStorage["ir_height"] >> irHeight;
+    }
+    if(!fileStorage["output_width"].empty() ) {
+      fileStorage["output_width"] >> outWidth;
+    }
+    if(!fileStorage["output_wheight"].empty() ) {
+      fileStorage["output_height"] >> outHeight;
+    }
+    if(!fileStorage["output_x_min"].empty() ) {
+      fileStorage["output_x_min"] >> outXMin;
+    }
+    if(!fileStorage["output_y_min"].empty() ) {
+      fileStorage["output_y_min"] >> outYMin;
+    }
+    
   }
   std::cout << "Using: serial device: " << serialDevice << "\n";
   std::cout << " ir_width: " << irWidth << "\n";
@@ -167,7 +200,7 @@ int main(int argc, char* argv[] )
   // check calibration path
   fs::path calibPath("./calib.yml");
   if( !fs::exists( calibPath ) ) {
-    std::cerr << "No intrinsics calibration file found.  Please run ./bin/calibrate." << std::endl;
+    std::cerr << "No intrinsics calibration file found.  Please run ./bin/camera_calibrate." << std::endl;
     return -1;
   }
   // setup GPIO 
@@ -308,18 +341,21 @@ int main(int argc, char* argv[] )
 #endif
     // Process buttons
     buttons = 0;
+    auto startTime = std::chrono::steady_clock::now();
     err = gpiod_line_get_value_bulk(&lines, values);
+    auto endTime = std::chrono::steady_clock::now();
+    std::cout << "ELAPSED TIME>> frame gpiod_line_get_value_bulk(): " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
     if( !values[0] ) {
-      buttons |= 0x01;
+      buttons |= devastar::BUTTON_A;
     }
     if( !values[1] ) {
-      buttons |= 0x02;
+      buttons |= devastar::BUTTON_B;
     }
     if( !values[2] ) {
-      buttons |= 0x04;
+      buttons |= devastar::BUTTON_C;
     }
     if( !values[3] ) {
-      buttons |= 0x08;
+      buttons |= devastar::BUTTON_D; 
     }
     if(err)
     {
@@ -329,9 +365,9 @@ int main(int argc, char* argv[] )
     }
 
     // Process Video
-    auto startTime = std::chrono::steady_clock::now();
+    startTime = std::chrono::steady_clock::now();
     inputVideo >> frame;
-    auto endTime = std::chrono::steady_clock::now();
+    endTime = std::chrono::steady_clock::now();
     std::cout << "ELAPSED TIME>> frame grab: " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
     // cv to grey
     startTime = std::chrono::steady_clock::now();
@@ -399,11 +435,6 @@ int main(int argc, char* argv[] )
       }
       endTime = std::chrono::steady_clock::now();
       std::cout << "ELAPSED TIME>> rerder centers: " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
-      /*
-         for( int i=0; i < centers.size(); ++i ) {
-         std::cout << "center[" << i << "] = " << centers[i] << std::endl;
-         }
-         */
 
 #ifdef SHOW_IMAGE
       // display it
@@ -436,12 +467,11 @@ int main(int argc, char* argv[] )
       endTime = std::chrono::steady_clock::now();
       std::cout << "ELAPSED TIME>> solvePnP(): " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
       if( solveRet ) {
-        //std::cout << "solveRet: " << solveRet << std::endl;
+        
         cv::Mat R;
         cv::Rodrigues(rvec, R); // get rotation matrix R ( 3x3 ) from rotation vector 
         R = R.t(); // inverse
         tvec = -R * tvec; // translation of inverseA == actual camera position
-
 
         // compute itersection
         cv::Vec3f Ray0,D;
@@ -456,7 +486,8 @@ int main(int argc, char* argv[] )
         float u, v;
         //bool hit = false;
         startTime = std::chrono::steady_clock::now();
-        bool hit = intersectRect(Ray0, D, P0, S1, S2, irWidth, irHeight, u, v);
+        //bool hit = intersectRect(Ray0, D, P0, S1, S2, irWidth, irHeight, u, v);
+        bool hit = false;
         //computeUV(Ray0, D, P0, S1, S2, irWidth, irHeight, u, v);
         endTime = std::chrono::steady_clock::now();
         std::cout << "ELAPSED TIME>> intersectRect(): " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
@@ -486,8 +517,9 @@ int main(int argc, char* argv[] )
 
         std::cout << "ready: " << serialPortReady << " hit: " << hit << " x: " << (int)xyb[0] << " y: " << (int)xyb [1] << " buttons: " << (int)xyb[2] << std::endl;
 
-
-        if( hit ) {
+        if( doCalibration ) {
+	  
+        }else if( hit ) {
 #ifdef SHOW_IMAGE
           cv::Point2f pt;
           pt.x = (u/irWidth) * 640.0f;

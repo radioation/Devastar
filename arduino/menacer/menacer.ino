@@ -110,14 +110,14 @@ void loop() {
     buttons = SERIAL_COM.read(); 
       // set buttons
     if ( buttons & 0x01 ) {
-      digitalWrite(B_PIN, LOW);
-    } else {
-      digitalWrite(B_PIN, HIGH);
-    }
-    if ( buttons & 0x02 ) {
       digitalWrite(A_PIN, LOW);
     } else {
       digitalWrite(A_PIN, HIGH);
+    }
+    if ( buttons & 0x02 ) {
+      digitalWrite(B_PIN, LOW);
+    } else {
+      digitalWrite(B_PIN, HIGH);
     }
 
     if ( buttons & 0x04 ) {
