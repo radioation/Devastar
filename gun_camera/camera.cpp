@@ -27,6 +27,7 @@
 //#define SHOW_IMAGE
 //#define SHOW_CALC
 //#define SHOW_3D
+//#define SHOW_TIME
 
 
 #include <filesystem>
@@ -41,7 +42,6 @@ namespace fs = std::filesystem;
 void init3d( const std::vector<cv::Point3f>& worldPoints );
 void update3d( const cv::Mat& tvec, const cv::Mat& R, const float& u, const float& v  );
 #endif
-
 
 
 
@@ -131,15 +131,16 @@ void gpio_cleanup() {
 
 int main(int argc, char* argv[] )
 {
-  int doCalibration = false;
-
-
+  bool doCalibration = false;
+  auto currentMode = devastar::AIM_CALIBRATE_START;
+  auto  lastButton = devastar::BUTTON_NONE;
   if( argc > 0 ) {
     // check argc
     if( std::experimental::string_view( argv[1] ) == "calibrate" ) {
       doCalibration = true;
     } else {
       std::cerr << "Usage: " << argv[0] << " [calibrate]\n";
+      return -1;
     }
   }
   // check configuration path
@@ -205,10 +206,10 @@ int main(int argc, char* argv[] )
   }
 
   // setup button pins
-  offsets[0] = 5;
-  offsets[1] = 6;
+  offsets[0] = 6;  // Trigger
+  offsets[1] = 5;
   offsets[2] = 13;
-  offsets[3] = 19;
+  offsets[3] = 19; 
   values[0] = -1;
   values[1] = -1;
   values[2] = -1;
@@ -331,10 +332,14 @@ int main(int argc, char* argv[] )
 #endif
     // Process buttons
     buttons = 0;
+#ifdef SHOW_TIME
     auto startTime = std::chrono::steady_clock::now();
+#endif
     err = gpiod_line_get_value_bulk(&lines, values);
+#ifdef SHOW_TIME
     auto endTime = std::chrono::steady_clock::now();
     std::cout << "ELAPSED TIME>> frame gpiod_line_get_value_bulk(): " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
+#endif
     if( !values[0] ) {
       buttons |= devastar::BUTTON_A;
     }
@@ -355,33 +360,53 @@ int main(int argc, char* argv[] )
     }
 
     // Process Video
+#ifdef SHOW_TIME
     startTime = std::chrono::steady_clock::now();
+#endif
     inputVideo >> frame;
+#ifdef SHOW_TIME
     endTime = std::chrono::steady_clock::now();
     std::cout << "ELAPSED TIME>> frame grab: " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
+#endif
     // cv to grey
+#ifdef SHOW_TIME
     startTime = std::chrono::steady_clock::now();
+#endif
     cv::cvtColor( frame, gray, cv::COLOR_BGR2GRAY); 
+#ifdef SHOW_TIME
     endTime = std::chrono::steady_clock::now();
     std::cout << "ELAPSED TIME>> cvtColor(): " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
+#endif
 
     // threshold
+#ifdef SHOW_TIME
     startTime = std::chrono::steady_clock::now();
+#endif
     cv::threshold( gray, thresh, 200, 255, cv::THRESH_BINARY);
+#ifdef SHOW_TIME
     endTime = std::chrono::steady_clock::now();
     std::cout << "ELAPSED TIME>> cv::threshold(): " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
+#endif
     std::vector< std::vector< cv::Point> > contours;
 
     // look for IR lights
+#ifdef SHOW_TIME
     startTime = std::chrono::steady_clock::now();
+#endif
     cv::findContours( thresh, contours, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
+#ifdef SHOW_TIME
     endTime = std::chrono::steady_clock::now();
     std::cout << "ELAPSED TIME>> cv::findContours(): " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
+#endif
 
     // process if we have at least 4 points
+#ifdef SHOW_TIME
     startTime = std::chrono::steady_clock::now();
+#endif
     if (contours.size() >= 4) {
+#ifdef SHOW_TIME
       startTime = std::chrono::steady_clock::now();
+#endif
       // compute moments to get centers.  
       std::vector< cv::Moments > moments( contours.size() );
       for( size_t i = 0; i < contours.size(); ++i ) {
@@ -402,11 +427,15 @@ int main(int argc, char* argv[] )
           }
         }
       }
+#ifdef SHOW_TIME
       endTime = std::chrono::steady_clock::now();
       std::cout << "ELAPSED TIME>> get centers from moments: " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
+#endif
 
       //////  REORDER center //////////////////////////////
+#ifdef SHOW_TIME
       startTime = std::chrono::steady_clock::now();
+#endif
       cv::Point2f a = centers[0];		
       cv::Point2f b = centers[1];		
       if( centers[3].x > centers[2].x ) {
@@ -423,8 +452,10 @@ int main(int argc, char* argv[] )
         centers[2] = b;
         centers[3] = a;
       }
+#ifdef SHOW_TIME
       endTime = std::chrono::steady_clock::now();
       std::cout << "ELAPSED TIME>> rerder centers: " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
+#endif
 
 #ifdef SHOW_IMAGE
       // display it
@@ -452,10 +483,14 @@ int main(int argc, char* argv[] )
       // tvec- is the translation vector 
       cv::Mat rvec, tvec;
       std::vector< cv::Mat > rvecs, tvecs;	
+#ifdef SHOW_TIME
       startTime = std::chrono::steady_clock::now();
+#endif
       auto solveRet = cv::solvePnP(worldPoints, centers, cameraMatrix, distCoeffs, rvec, tvec, false, cv::SOLVEPNP_AP3P);
+#ifdef SHOW_TIME
       endTime = std::chrono::steady_clock::now();
       std::cout << "ELAPSED TIME>> solvePnP(): " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
+#endif
       if( solveRet ) {
 
         cv::Mat R;
@@ -475,12 +510,16 @@ int main(int argc, char* argv[] )
 
         float u, v;
         //bool hit = false;
+#ifdef SHOW_TIME
         startTime = std::chrono::steady_clock::now();
+#endif
         //bool hit = intersectRect(Ray0, D, P0, S1, S2, irWidth, irHeight, u, v);
         bool hit = false;
-        //computeUV(Ray0, D, P0, S1, S2, irWidth, irHeight, u, v);
+        computeUV(Ray0, D, P0, S1, S2, ac.irWidth, ac.irHeight, u, v);
+#ifdef SHOW_TIME
         endTime = std::chrono::steady_clock::now();
         std::cout << "ELAPSED TIME>> intersectRect(): " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
+#endif
 
 
 #ifdef SHOW_CALC
@@ -505,9 +544,26 @@ int main(int argc, char* argv[] )
         update3d( tvec, R, u, v );
 #endif
 
-        std::cout << "ready: " << serialPortReady << " hit: " << hit << " x: " << (int)xyb[0] << " y: " << (int)xyb [1] << " buttons: " << (int)xyb[2] << std::endl;
-
         if( doCalibration ) {
+	  // pass U/V to it?
+	  if( buttons & devastar::BUTTON_A ) {
+		  if( lastButton != devastar::BUTTON_A ) {
+			  std::cout << "TRIGGER: " << u << "," << v << std::endl;
+			  lastButton = devastar::BUTTON_A;
+		  } 
+	  } else if( buttons & devastar::BUTTON_B ) {
+		  if( lastButton != devastar::BUTTON_B ) {
+			  std::cout << "Button B" << std::endl;
+			  lastButton = devastar::BUTTON_B;
+		  } 
+	  } else if( buttons & devastar::BUTTON_C ) {
+		  if( lastButton != devastar::BUTTON_C ) {
+			  std::cout << "Button C" << std::endl;
+			  lastButton = devastar::BUTTON_C;
+		  } 
+	  } else if ( buttons == 0 ) {
+  		lastButton = devastar::BUTTON_NONE;
+	  }
         }else if( hit ) {
 #ifdef SHOW_IMAGE
           cv::Point2f pt;

@@ -8,9 +8,10 @@
 namespace devastar {
 
   enum AimCalibrateMode {
+    AIM_CALIBRATE_START,
     AIM_CALIBRATE_UPPER_LEFT,
     AIM_CALIBRATE_LOWER_RIGHT,
-    AIM_CALIBRATE_AVERAGE,
+    AIM_CALIBRATE_RUN
   };
 
 
