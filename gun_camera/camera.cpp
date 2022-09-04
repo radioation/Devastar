@@ -132,6 +132,8 @@ void gpio_cleanup() {
 int main(int argc, char* argv[] )
 {
   int doCalibration = false;
+
+
   if( argc > 0 ) {
     // check argc
     if( std::experimental::string_view( argv[1] ) == "calibrate" ) {
@@ -145,9 +147,7 @@ int main(int argc, char* argv[] )
 
   std::string serialDevice = DEFAULT_SERIAL_DEVICE;
 
- 
-  float irWidth = 510.0f;
-  float irHeight = 260.0f;
+
   // from obvservation with delay4Cycles() on arduino
   // Menacer
   // X range is 73 to 269 : send 0 through 196
@@ -158,43 +158,33 @@ int main(int argc, char* argv[] )
   // Sega Light Phaser
   // X range is 24 to 247 : send 0 through 223
   // Y range is 15 to 193 : send 0 through 178
-  float outWidth = 196.0f;
-  float outHeight = 220.0f;
-  float outXMin = 0.0f;
-  float outYMin = 0.0f;
+  devastar::AimCalibration ac (
+      510.0f, //  irWidth 
+      260.0f, //  irHeight
+      196.0f, //  outWidth
+      220.0f, //  outHeight
+      0.0f,   //  outXMin 
+      0.0f    //  outYMin
+      ); 
+
   if( fs::exists( configPath ) ) {
+    ac.readConfig( configPath );
     cv::FileStorage fileStorage(configPath, cv::FileStorage::READ);
     if(!fileStorage["serial_device"].empty() ) {
       fileStorage["serial_device"] >> serialDevice;
     }
-    if(!fileStorage["ir_width"].empty() ) {
-      fileStorage["ir_width"] >> irWidth;
-    }
-    if(!fileStorage["ir_height"].empty() ) {
-      fileStorage["ir_height"] >> irHeight;
-    }
-    if(!fileStorage["output_width"].empty() ) {
-      fileStorage["output_width"] >> outWidth;
-    }
-    if(!fileStorage["output_wheight"].empty() ) {
-      fileStorage["output_height"] >> outHeight;
-    }
-    if(!fileStorage["output_x_min"].empty() ) {
-      fileStorage["output_x_min"] >> outXMin;
-    }
-    if(!fileStorage["output_y_min"].empty() ) {
-      fileStorage["output_y_min"] >> outYMin;
-    }
-    
   }
+  devastar::AimCalibrator aimCalibrator(ac);
+
   std::cout << "Using: serial device: " << serialDevice << "\n";
-  std::cout << " ir_width: " << irWidth << "\n";
-  std::cout << " ir_height: " << irHeight << "\n";
-  std::cout << " output_width: " << outWidth << "\n";
-  std::cout << " output_height: " << outHeight << "\n";
-  std::cout << " output_x_min: " << outXMin << "\n";
-  std::cout << " output_y_min: " << outYMin << "\n";
-  bool useShortData = outWidth > 255 || outHeight > 255;
+  std::cout << " ir_width: " << ac.irWidth << "\n";
+  std::cout << " ir_height: " << ac.irHeight << "\n";
+  std::cout << " output_width: " << ac.outWidth << "\n";
+  std::cout << " output_height: " << ac.outHeight << "\n";
+  std::cout << " output_x_min: " << ac.outXMin << "\n";
+  std::cout << " output_y_min: " << ac.outYMin << "\n";
+
+  bool useShortData = ac.outWidth > 255 || ac.outHeight > 255;
   std::cout << " useShortData: " << useShortData << "\n";
 
   // check calibration path
@@ -264,9 +254,9 @@ int main(int argc, char* argv[] )
   // Setup object points
   std::vector<cv::Point3f> worldPoints;
   worldPoints.push_back(cv::Point3f(0, 0, 0));
-  worldPoints.push_back(cv::Point3f(irWidth, 0, 0));
-  worldPoints.push_back(cv::Point3f(0, irHeight, 0));
-  worldPoints.push_back(cv::Point3f(irWidth, irHeight, 0));
+  worldPoints.push_back(cv::Point3f(ac.irWidth, 0, 0));
+  worldPoints.push_back(cv::Point3f(0, ac.irHeight, 0));
+  worldPoints.push_back(cv::Point3f(ac.irWidth, ac.irHeight, 0));
   // setup rectangle for intersection test
   cv::Vec3f S1, S2, P0;
   P0[0] = worldPoints[0].x;
@@ -467,7 +457,7 @@ int main(int argc, char* argv[] )
       endTime = std::chrono::steady_clock::now();
       std::cout << "ELAPSED TIME>> solvePnP(): " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
       if( solveRet ) {
-        
+
         cv::Mat R;
         cv::Rodrigues(rvec, R); // get rotation matrix R ( 3x3 ) from rotation vector 
         R = R.t(); // inverse
@@ -504,8 +494,8 @@ int main(int argc, char* argv[] )
         std::cout << "P0: " << P0 << std::endl;
         std::cout << "S1: " << S1 << std::endl;
         std::cout << "S2: " << S2 << std::endl;
-        std::cout << "irWidth: " << irWidth  << std::endl;
-        std::cout << "irHeight: " << irHeight << std::endl;
+        std::cout << "irWidth: " << ac.irWidth  << std::endl;
+        std::cout << "irHeight: " << ac.irHeight << std::endl;
         std::cout << "U: " << u << " V: " << v << " hit: " << hit << std::endl;
 #endif
 
@@ -518,26 +508,25 @@ int main(int argc, char* argv[] )
         std::cout << "ready: " << serialPortReady << " hit: " << hit << " x: " << (int)xyb[0] << " y: " << (int)xyb [1] << " buttons: " << (int)xyb[2] << std::endl;
 
         if( doCalibration ) {
-	  
         }else if( hit ) {
 #ifdef SHOW_IMAGE
           cv::Point2f pt;
-          pt.x = (u/irWidth) * 640.0f;
-          pt.y = (v/irHeight) * 480.0f;
+          pt.x = (u/ac.irWidth) * 640.0f;
+          pt.y = (v/ac.irHeight) * 480.0f;
           cv::circle( displayCopy, pt, 5.0f, cv::Scalar(0,255,255), 3.0f);
           cv::imshow("points", displayCopy );
           cv::waitKey(1);
 #endif
           if( !useShortData ) {
-            xyb[0] = (unsigned char)( ( u / irWidth) * outWidth  );
-            xyb[1] = (unsigned char)( ( v / irHeight) * outHeight  );
+            xyb[0] = (unsigned char)( ( u / ac.irWidth) * ac.outWidth  );
+            xyb[1] = (unsigned char)( ( v / ac.irHeight) * ac.outHeight  );
             xyb[2] = buttons;
             if(serialPortReady ) {
               auto ret = write( fd, xyb, sizeof(xyb) );
             }
           } else {
-            sx = (unsigned short)( ( u / irWidth) * outWidth  );
-            sy = (unsigned char)( ( v / irHeight) * outHeight  );
+            sx = (unsigned short)( ( u / ac.irWidth) * ac.outWidth  );
+            sy = (unsigned char)( ( v / ac.irHeight) * ac.outHeight  );
             memcpy( xxyyb, &sx, sizeof( unsigned short ) ); 
             memcpy( xxyyb + sizeof(unsigned short) , &sy, sizeof( unsigned short ) ); 
             xxyyb[4] = buttons;

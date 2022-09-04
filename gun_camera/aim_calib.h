@@ -8,22 +8,31 @@
 namespace devastar {
 
   enum AimCalibrateMode {
-    AIM_CALIBRATE_UNFILTERED,
-    AIM_CALIBRATE_MEDIAN,
-    AIM_CALIBRATE_AVERAGE
+    AIM_CALIBRATE_UPPER_LEFT,
+    AIM_CALIBRATE_LOWER_RIGHT,
+    AIM_CALIBRATE_AVERAGE,
   };
 
 
   struct AimCalibration 
   {
-    AimCalibration();
-    ~AimCalibration();
+
+    AimCalibration(const float& irWidth, 
+        const float& irHeight, 
+        const float &outWidth,
+        const float &outHeight,
+        const float &outXMin,
+        const float &outYMin
+        );
+    ~AimCalibration() {};
+
     float irWidth; 
     float irHeight; 
     float outWidth;
     float outHeight;
     float outXMin;
     float outYMin;
+    
     bool readConfig( const std::string& configPath );
     bool writeConfig( const std::string& configPath );
   };
@@ -31,14 +40,20 @@ namespace devastar {
   class AimCalibrator 
   {
     public:
-      AimCalibrator();
+      AimCalibrator(devastar::AimCalibration & aimCalibration);
       ~AimCalibrator();
 
-    private:
-      std::vector<cv::Point2f> m_pointBuffer;
-      AimCalibrateMode m_mode;
+      size_t getCurrentSampleCount() { return m_pointBuffer.size(); };
+      AimCalibrateMode getMode() { return m_mode; };
+			size_t getMaxSamples() { return m_maxSamples; };
 
-  };
+		private:
+			AimCalibration &m_aimCalibration;
+			std::vector<cv::Point2f> m_pointBuffer;
+			AimCalibrateMode m_mode;
+			unsigned int m_maxSamples;
+
+	};
 
 }
 

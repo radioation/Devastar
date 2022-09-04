@@ -11,7 +11,7 @@ find_package(GLUT REQUIRED)
 include_directories( ${OpenCV_INCLUDE_DIR} ${OPENGL_INCLUDE_DIRS}  ${GLUT_INCLUDE_DIRS} )
 
 # add the executable
-add_executable( camera camera.cpp display3d.cpp)
+add_executable( camera camera.cpp display3d.cpp aim_calib.cpp )
 
 # set some flags
 target_compile_features( camera PRIVATE cxx_std_17)
