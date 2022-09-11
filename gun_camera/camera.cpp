@@ -3,6 +3,7 @@
 #include <opencv2/aruco/charuco.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
+#include <chrono>
 
 #include <gpiod.h>
 
@@ -118,6 +119,9 @@ void gpio_cleanup() {
 
 int main(int argc, char* argv[] )
 {
+
+
+
   // check configuration path
   fs::path configPath("./config.yml");
 
@@ -129,6 +133,9 @@ int main(int argc, char* argv[] )
   // XG-1
   // X range is 40 to 237 : send 0 through 197
   // Y range is 21 to 210 : send 0 through 189
+  // Phaser
+  // X range is 24 to 247 : send 0 through 223
+  // Y range is 15 to 193 : send 0 through 178
   float xRange = 196.0f;
   float yRange = 220.0f;
   float xMin = 0.0f;
@@ -146,6 +153,8 @@ int main(int argc, char* argv[] )
   std::cout << " Y-Range: " << yRange << "\n";
   std::cout << " X-Min: " << xMin << "\n";
   std::cout << " Y-Min: " << yMin << "\n";
+	bool useShortData = xRange > 255 || yRange > 255;
+  std::cout << " useShortData: " << useShortData << "\n";
 
   // check calibration path
   fs::path calibPath("./calib.yml");
@@ -281,6 +290,8 @@ int main(int argc, char* argv[] )
   cv::Mat displayCopy;
   unsigned char offscreen[] = { 0xFF, 0xFF, 0x00 };
   unsigned char xyb[3];
+  unsigned short sx, sy;
+  unsigned char xxyyb[5];
   unsigned char buttons = 0;
 
   // look at the cmameras
@@ -312,20 +323,33 @@ int main(int argc, char* argv[] )
     }
 
     // Process Video
+    auto startTime = std::chrono::steady_clock::now();
     inputVideo >> frame;
-
+    auto endTime = std::chrono::steady_clock::now();
+    std::cout << "ELAPSED TIME>> frame grab: " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
     // cv to grey
+    startTime = std::chrono::steady_clock::now();
     cv::cvtColor( frame, gray, cv::COLOR_BGR2GRAY); 
+    endTime = std::chrono::steady_clock::now();
+    std::cout << "ELAPSED TIME>> cvtColor(): " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
 
     // threshold
+    startTime = std::chrono::steady_clock::now();
     cv::threshold( gray, thresh, 200, 255, cv::THRESH_BINARY);
+    endTime = std::chrono::steady_clock::now();
+    std::cout << "ELAPSED TIME>> cv::threshold(): " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
     std::vector< std::vector< cv::Point> > contours;
 
     // look for IR lights
+    startTime = std::chrono::steady_clock::now();
     cv::findContours( thresh, contours, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
+    endTime = std::chrono::steady_clock::now();
+    std::cout << "ELAPSED TIME>> cv::findContours(): " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
 
     // process if we have at least 4 points
+    startTime = std::chrono::steady_clock::now();
     if (contours.size() >= 4) {
+      startTime = std::chrono::steady_clock::now();
       // compute moments to get centers.  
       std::vector< cv::Moments > moments( contours.size() );
       for( size_t i = 0; i < contours.size(); ++i ) {
@@ -346,8 +370,11 @@ int main(int argc, char* argv[] )
           }
         }
       }
+      endTime = std::chrono::steady_clock::now();
+      std::cout << "ELAPSED TIME>> get centers from moments: " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
 
       //////  REORDER center //////////////////////////////
+      startTime = std::chrono::steady_clock::now();
       cv::Point2f a = centers[0];		
       cv::Point2f b = centers[1];		
       if( centers[3].x > centers[2].x ) {
@@ -364,6 +391,8 @@ int main(int argc, char* argv[] )
         centers[2] = b;
         centers[3] = a;
       }
+      endTime = std::chrono::steady_clock::now();
+      std::cout << "ELAPSED TIME>> rerder centers: " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
       /*
       for( int i=0; i < centers.size(); ++i ) {
         std::cout << "center[" << i << "] = " << centers[i] << std::endl;
@@ -396,7 +425,10 @@ int main(int argc, char* argv[] )
       // tvec- is the translation vector 
       cv::Mat rvec, tvec;
       std::vector< cv::Mat > rvecs, tvecs;	
+      startTime = std::chrono::steady_clock::now();
       auto solveRet = cv::solvePnP(worldPoints, centers, cameraMatrix, distCoeffs, rvec, tvec, false, cv::SOLVEPNP_AP3P);
+      endTime = std::chrono::steady_clock::now();
+      std::cout << "ELAPSED TIME>> solvePnP(): " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
       if( solveRet ) {
         //std::cout << "solveRet: " << solveRet << std::endl;
         //if( solveRet ) {
@@ -418,7 +450,10 @@ int main(int argc, char* argv[] )
 
         float u, v;
 	//bool hit = false;
+      	startTime = std::chrono::steady_clock::now();
         bool hit = intersectRect(Ray0, D, P0, S1, S2, width, height, u, v);
+      	endTime = std::chrono::steady_clock::now();
+      	std::cout << "ELAPSED TIME>> intersectRect(): " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
         //computeUV(Ray0, D, P0, S1, S2, width, height, u, v);
 
 #ifdef SHOW_CALC
@@ -443,7 +478,8 @@ int main(int argc, char* argv[] )
         update3d( tvec, R, u, v );
 #endif
 
-     std::cout << "ready: " << serialPortReady << " hit: " << hit << " x: " << (int)xyb[0] << " y: " << (int)xyb [1] << " buttons: " << (int)xyb[2] << std::endl;
+        std::cout << "ready: " << serialPortReady << " hit: " << hit << " x: " << (int)xyb[0] << " y: " << (int)xyb [1] << " buttons: " << (int)xyb[2] << std::endl;
+
 
         if( hit ) {
 #ifdef SHOW_IMAGE
@@ -454,11 +490,22 @@ int main(int argc, char* argv[] )
           cv::imshow("points", displayCopy );
           cv::waitKey(1);
 #endif
-          xyb[0] = (unsigned char)( ( u / width) * xRange  );
-          xyb[1] = (unsigned char)( ( v / height) * yRange  );
-          xyb[2] = buttons;
-          if(serialPortReady ) {
-            auto ret = write( fd, xyb, sizeof(xyb) );
+          if( !useShortData ) {
+            xyb[0] = (unsigned char)( ( u / width) * xRange  );
+            xyb[1] = (unsigned char)( ( v / height) * yRange  );
+            xyb[2] = buttons;
+            if(serialPortReady ) {
+              auto ret = write( fd, xyb, sizeof(xyb) );
+            }
+          } else {
+            sx = (unsigned short)( ( u / width) * xRange  );
+            sy = (unsigned char)( ( v / height) * yRange  );
+            memcpy( xxyyb, &sx, sizeof( unsigned short ) ); 
+            memcpy( xxyyb + sizeof(unsigned short) , &sy, sizeof( unsigned short ) ); 
+            xxyyb[4] = buttons;
+            if(serialPortReady ) {
+              auto ret = write( fd, xyb, sizeof(xyb) );
+            }
           }
           continue;  // head back up the loop
         } // if( hit ) 
