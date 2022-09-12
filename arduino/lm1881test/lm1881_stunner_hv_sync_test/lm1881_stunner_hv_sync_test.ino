@@ -30,8 +30,9 @@ const int STUNNER_PIN_5_START = 10;  // TR is the light gun start
 volatile int minY = 0;
 volatile int minX = 0; 
 
-volatile short y = 260; //   50 near top
-volatile short x = 100; //
+volatile short y = 260; //   40~ish near top. ~255 is the bottom
+volatile short x = 100; //  1 is the left? seems odd.  185 is the right (disappears, need to look into faster uController)
+
 
 
 // modified delayMicroseconds to use the smallest possible wait
@@ -129,20 +130,20 @@ void loop() {
         digitalWrite(STUNNER_PIN_6_TRIGGER, HIGH);   
         break; 
       case 't':
-        y = 50;
+        y = 40;
         break;
       case 'r':
-        x = 260;
+        x = 183;
         break;
       case 'b':
-        y = 260;
+        y = 250;
         break;
       case 'l':
-        x = 50;
+        x = 1;
         break; 
       case 'm':
-        x = 100;
-        y = 100;
+        x = 95;
+        y = 155;
         break;
     }
   }
