@@ -30,14 +30,8 @@ const int STUNNER_PIN_5_START = 10;  // TR is the light gun start
 volatile int minY = 0;
 volatile int minX = 0; 
 
-volatile byte y = 124; //  SGDK: 24 appears to be the top of the screen, 247 the bottom  ( 247 -24  = 223  range )
-// Shooting gallary  ~32 is the top of the playfield, ~230 is the bottom ( 230 -32 = 198 range. but would need offset due to border)
-
-
-// My SGDK test with SMS STUNNER appears to return 30 through 180 when I pan
-// across my TV screen in H32 mode.   so about 150 values over 320 pixels
-volatile byte x = 100; // 15 appears to give me about 30, 193 gets me to about 180  ( 193-15 = 178 range )
-// Shooting gallary  ~22 is the left of the playfield, ~170 is the bottom ( 187 -22 = 165 range. but would need offset due to border)
+volatile short y = 260; //   50 near top
+volatile short x = 100; //
 
 
 // modified delayMicroseconds to use the smallest possible wait
@@ -56,15 +50,13 @@ void delayX4Cycles(unsigned int c)
 
 
 void compositeSyncInterrrupt() {
-  verticalLine++; 
-  //if ( verticalLine == minY + y ) {  
+  verticalLine++;  
   // apparently we need to have more than one line
-  if ( verticalLine >= minY + y && verticalLine < minY + y + 7 ) {  
+  if ( verticalLine >= minY + y && verticalLine < minY + y + 8 ) {  
     delayX4Cycles(minX + x);
     digitalWrite( STUNNER_PIN_4, LOW ); // TH active is 0
-    delayMicroseconds( 5 ); // arbitrary.
-   digitalWrite( STUNNER_PIN_4, HIGH );
-  //Serial.println(verticalLine);
+    delayMicroseconds( 3 ); // arbitrary.
+    digitalWrite( STUNNER_PIN_4, HIGH );
   }
 }
 
@@ -94,44 +86,64 @@ void setup() {
 }
 
 void loop() { 
-  Serial.println(verticalLine);
+  
+  //Serial.println(verticalLine);
   
   if (Serial.available()){
     char val = Serial.read(); // Read a character
     switch(val) {
       case 'w':
-        y++;
+        y--;
         break;
       case 'a':
         x--;
         break;
       case 's':
-        y--;
+        y++;
         break;
       case 'd':
         x++;
         break;
       case 'W':
-        y +=10;
+        y -=10;
         break;
       case 'A':
         x -= 10;
         break;
       case 'S':
-        y -= 10;
+        y += 10;
         break;
-      case 't':  
-        digitalWrite(STUNNER_PIN_6_TRIGGER, LOW); 
-        delay(300);
-        digitalWrite(STUNNER_PIN_6_TRIGGER, HIGH);     
-        break; 
-      case 'r':
+      case 'D':
+        x += 10;
+        break;
+      case 'q':    
+        Serial.print("Start\n");
         digitalWrite(STUNNER_PIN_5_START, LOW); 
-        delay(300);
+        delay(150);
         digitalWrite(STUNNER_PIN_5_START, HIGH);  
         break; 
+      case 'e':
+        Serial.println((String)"Trigger x:"+x+" y:"+y);
+        digitalWrite(STUNNER_PIN_6_TRIGGER, LOW); 
+        delay(150);
+        digitalWrite(STUNNER_PIN_6_TRIGGER, HIGH);   
+        break; 
+      case 't':
+        y = 50;
+        break;
+      case 'r':
+        x = 260;
+        break;
+      case 'b':
+        y = 260;
+        break;
+      case 'l':
+        x = 50;
+        break; 
+      case 'm':
+        x = 100;
+        y = 100;
+        break;
     }
-
- 
   }
 }
