@@ -56,7 +56,7 @@ void compositeSyncInterrrupt() {
   if ( verticalLine >= minY + y && verticalLine < minY + y + 8 ) {  
     delayX4Cycles(minX + x);
     digitalWrite( STUNNER_PIN_4, LOW ); // TH active is 0
-    delayMicroseconds( 3 ); // arbitrary.
+    delayMicroseconds( 4 ); // arbitrary.
     digitalWrite( STUNNER_PIN_4, HIGH );
   }
 }
@@ -93,58 +93,62 @@ void loop() {
   if (Serial.available()){
     char val = Serial.read(); // Read a character
     switch(val) {
-      case 'w':
+      case 'w':  // up
         y--;
         break;
-      case 'a':
+      case 'a':  // left
         x--;
         break;
-      case 's':
+      case 's':  // down
         y++;
         break;
-      case 'd':
+      case 'd':  // right
         x++;
         break;
-      case 'W':
+      case 'W':   // up by ten
         y -=10;
         break;
-      case 'A':
-        x -= 10;
+      case 'A':    // left by ten
+        x -= 10;  
         break;
-      case 'S':
-        y += 10;
+      case 'S':   // down by ten
+        y += 10;  
         break;
-      case 'D':
+      case 'D':  // right by ten
         x += 10;
         break;
-      case 'q':    
+      case 'q':     // Start button
         Serial.print("Start\n");
         digitalWrite(STUNNER_PIN_5_START, LOW); 
         delay(150);
         digitalWrite(STUNNER_PIN_5_START, HIGH);  
         break; 
-      case 'e':
+      case 'e':     // Trigger
         Serial.println((String)"Trigger x:"+x+" y:"+y);
         digitalWrite(STUNNER_PIN_6_TRIGGER, LOW); 
         delay(150);
         digitalWrite(STUNNER_PIN_6_TRIGGER, HIGH);   
         break; 
       case 't':
-        y = 40;
+        y = 40;  // move to the top
         break;
-      case 'r':
+      case 'r':  // move to the right
         x = 183;
         break;
-      case 'b':
+      case 'b':  // move to the bottom
         y = 250;
         break;
-      case 'l':
+      case 'l':  // move to the left
         x = 1;
         break; 
-      case 'm':
-        x = 95;
+      case 'm':  // move to the middle
+        x = 100;
         y = 155;
         break;
+      case 'o': // point offscreen 
+        y = 100;
+        x = 0;
+        break; 
     }
   }
 }
