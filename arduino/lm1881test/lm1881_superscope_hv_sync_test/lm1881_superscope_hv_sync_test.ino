@@ -22,17 +22,17 @@ volatile int verticalLine = 0;  // runnig count
 
 // controller pins
 const int SUPERSCOPE_PIN_2 = 8;  // External Latch on SNES port
-const int IC4021_TRIGGER_15 = 9;  // trigger goes to shifter chip pin 15
+const int IC4021_START_15 = 9;  // trigger goes to shifter chip pin 15
 const int IC4021_TURBO_14 = 10;  // turbo goes to shifter chip pin 14
 const int IC4021_PAUSE_13 = 11;  //  pause goes to shifter chip pin 13
-const int IC4021_START_1 = 12;  // start goes to shifter chip pin 12
+const int IC4021_TRIGGER_1 = 12;  // start goes to shifter chip pin 12
 
   
 // offsets
 volatile int minY = 0;
 volatile int minX = 0; 
 
-volatile short y = 260; //   
+volatile short y = 130; //   
 volatile short x = 100; //   
 
 
@@ -77,15 +77,15 @@ void setup() {
  
   // controller pins 
   pinMode(SUPERSCOPE_PIN_2, OUTPUT);
-  pinMode(IC4021_TRIGGER_15, OUTPUT);
+  pinMode(IC4021_TRIGGER_1, OUTPUT);
   pinMode(IC4021_TURBO_14, OUTPUT); 
   pinMode(IC4021_PAUSE_13, OUTPUT);
-  pinMode(IC4021_START_1, OUTPUT); 
+  pinMode(IC4021_START_15, OUTPUT); 
   digitalWrite(SUPERSCOPE_PIN_2, HIGH);
-  digitalWrite(IC4021_TRIGGER_15, HIGH);
+  digitalWrite(IC4021_TRIGGER_1, HIGH);
   digitalWrite(IC4021_TURBO_14, HIGH);
   digitalWrite(IC4021_PAUSE_13, HIGH);
-  digitalWrite(IC4021_START_1, HIGH);
+  digitalWrite(IC4021_START_15, HIGH);
 
   // interrupts
   attachInterrupt(digitalPinToInterrupt(COMPOSITE_SYNC_1881), compositeSyncInterrrupt, RISING);
@@ -124,16 +124,28 @@ void loop() {
         x += 10;
         break;
       case 'q':     // Start button
-        Serial.print("Start\n");
-        digitalWrite(IC4021_START_1, LOW); 
+        Serial.println((String)"Trigger x:"+x+" y:"+y); 
+        digitalWrite(IC4021_TRIGGER_1, LOW); 
         delay(150);
-        digitalWrite(IC4021_START_1, HIGH);  
+        digitalWrite(IC4021_TRIGGER_1, HIGH);  
         break; 
       case 'e':     // Trigger
-        Serial.println((String)"Trigger x:"+x+" y:"+y);
-        digitalWrite(IC4021_TRIGGER_15, LOW); 
+        Serial.print("Start\n");
+        digitalWrite(IC4021_START_15, LOW); 
         delay(150);
-        digitalWrite(IC4021_TRIGGER_15, HIGH);   
+        digitalWrite(IC4021_START_15, HIGH);   
+        break; 
+      case 'z':     // Turbo
+        Serial.print("Turbo\n");
+        digitalWrite(IC4021_TURBO_14, LOW); 
+        delay(150);
+        digitalWrite(IC4021_TURBO_14, HIGH);  
+        break; 
+      case 'c':     // Pause
+        Serial.print("Paus\n");
+        digitalWrite(IC4021_PAUSE_13, LOW); 
+        delay(150);
+        digitalWrite(IC4021_PAUSE_13, HIGH);   
         break; 
       case 't':
         y = 40;  // move to the top
