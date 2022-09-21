@@ -4,10 +4,17 @@ This project is an attempt to create a flatscreen lightgun to work with my Sega 
 The project is still in its early stages and it will be a while before I release the circuitry.  
 
 It's now usable, but needs some refinement.  
+
+## Sega Menacer Receiver
 [![IR Menacer](https://img.youtube.com/vi/hTlZYFlo4qI/0.jpg)](https://www.youtube.com/watch?v=hTlZYFlo4qI)
+## Atari XG-1 Receiver
 [![IR Atari XG-1](https://img.youtube.com/vi/NhuL7JiWjTw/0.jpg)](https://www.youtube.com/watch?v=NhuL7JiWjTw)
+## Sega Light Phaser (SMS) Receiver
 [![IR Phaser](https://img.youtube.com/vi/S2LcZB0aXFM/0.jpg)](https://www.youtube.com/watch?v=S2LcZB0aXFM)
+## Sega Stunner (Saturn)  Receiver
 [![Saturn/Virtua Gun backend](https://img.youtube.com/vi/H4ljcguIE-E/0.jpg)](https://www.youtube.com/watch?v=H4ljcguIE-E)
+## Nintendo SuperScope (SNES) Receiver
+[![Saturn/Virtua Gun backend](https://img.youtube.com/vi/g_7rVOUvzBE/0.jpg)](https://www.youtube.com/watch?v=g_7rVOUvzBE)
 
 
 # License 
