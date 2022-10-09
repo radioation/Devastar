@@ -35,8 +35,8 @@ const int minX = 0;
 
 // input variables
 // changed y and x to figure out edges.
-volatile byte y = 170;  // line count ( 30 to 250 seems to be the Y range )
-volatile short x = 170;  // Simulate TH delay ( seems to be 73 to 263 ) with delayX4Cycles() function )
+volatile byte y = 170;  // line count ( 26 to 247 seems to be the Y range )
+volatile short x = 170;  // Simulate TH delay ( seems to be 69 to 263 ) with delayX4Cycles() function )
 volatile byte buttons = 0;
 
 
@@ -195,16 +195,16 @@ char val = Serial.read(); // Read a character
         buttons ^= 0x08; 
         break; 
       case 't':
-        y = 40;  // move to the top
+        y = 26;  // move to the top
         break;
       case 'r':  // move to the right
         x = 263;
         break;
       case 'b':  // move to the bottom
-        y = 250;
+        y = 247;
         break;
       case 'l':  // move to the left
-        x = 73;
+        x = 69;
         break; 
       case 'm':  // move to the middle
         x = 163;
