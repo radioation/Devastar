@@ -123,13 +123,13 @@ void loop() {
       case 'D':  // right by ten
         x += 10;
         break;
-      case 'q':     // Start button
+      case 'q':     // Trigger button
         Serial.println((String)"Trigger x:"+x+" y:"+y); 
         digitalWrite(IC4021_TRIGGER_1, LOW); 
         delay(150);
         digitalWrite(IC4021_TRIGGER_1, HIGH);  
         break; 
-      case 'e':     // Trigger
+      case 'e':     // Start
         Serial.print("Start\n");
         digitalWrite(IC4021_START_15, LOW); 
         delay(150);
@@ -142,7 +142,7 @@ void loop() {
         digitalWrite(IC4021_TURBO_14, HIGH);  
         break; 
       case 'c':     // Pause
-        Serial.print("Paus\n");
+        Serial.print("Pause\n");
         digitalWrite(IC4021_PAUSE_13, LOW); 
         delay(150);
         digitalWrite(IC4021_PAUSE_13, HIGH);   
