@@ -32,12 +32,12 @@ volatile int verticalLine = 0;
 
 // controller pins
 const int TL_PIN = 7;
-const int TH_PIN = 8;    // PB0
+const int TH_PIN = 8;    // PB4
 
-const int B_PIN = 9;     // PB1
-const int A_PIN = 10;    // PB2
-const int C_PIN = 11;    // PB3
-const int S_PIN = 12;    // PB7
+const int B_PIN = 9;     // PB5
+const int A_PIN = 10;    // PB6
+const int C_PIN = 11;    // PB7
+const int S_PIN = 12;    // PD6
 
 
 // offsets
@@ -82,32 +82,34 @@ void TLInterrupt() {
 
   if ( tlState == LOW ) {
     // faling edge, so deactivate all of the buttons, but leave TH ( PB0 ) alone
-    // PB1 - B
-    // PB2 - A/Trigger
-    // PB3 - C
-    // PB7 - Start
-    PORTB = PORTB & B01110001;  // bit-zero is TH,  4,5,6 are not used
+    // PB5 - B
+    // PB6 - A/Trigger
+    // PB7 - C
+    // PD6 - Start
+    PORTB = PORTB & B00011111;
+    PORTD = PORTD & B10111111;
+
   } else {
     // rising edge, set the buttons as needed.
     byte pb = PORTB;
     // TODO: May make more sense to set PB* bits in Raspberry PI properly.
     if ( buttons & 0x01 ) {
       // B
-      pb = pb | 2;
+      pb = pb | B00100000;
     }
     if ( buttons & 0x02 ) {
       // A - trigger
-      pb = pb | 4;
+      pb = pb | B01000000;
     }
     if ( buttons & 0x04 ) {
       // C
-      pb = pb | 8;
+      pb = pb| B10000000;
     }
     if ( buttons & 0x08) {
-      // S
-      pb = pb | 64;
+      // S 
+      PORTD = PORTD | B01000000;
     }
-    PORTB = pb;
+    PORTB = PORTB | pb; // port b
   }
 }
 
