@@ -24,10 +24,10 @@
 #define BAUDRATE B38400            
 #define DEFAULT_SERIAL_DEVICE "/dev/ttyACM0"
 
-//#define SHOW_IMAGE
-//#define SHOW_CALC
-//#define SHOW_3D
-//#define SHOW_TIME
+#define SHOW_IMAGE
+#define SHOW_CALC
+#define SHOW_3D
+#define SHOW_TIME
 
 
 #include <filesystem>
@@ -132,9 +132,9 @@ void gpio_cleanup() {
 int main(int argc, char* argv[] )
 {
   bool doCalibration = false;
-  auto currentMode = devastar::AIM_CALIBRATE_START;
-  auto  lastButton = devastar::BUTTON_NONE;
-  if( argc > 0 ) {
+  auto lastMode = devastar::AIM_CALIBRATE_START;
+  auto lastButton = devastar::BUTTON_NONE;
+  if( argc > 1 ) {
     // check argc
     if( std::experimental::string_view( argv[1] ) == "calibrate" ) {
       doCalibration = true;
@@ -147,12 +147,13 @@ int main(int argc, char* argv[] )
   fs::path configPath("./config.yml");
 
   std::string serialDevice = DEFAULT_SERIAL_DEVICE;
-
+  double minBlobSize = 6.0;
+  double maxBlobSize = 250.0;
 
   // from obvservation with delay4Cycles() on arduino
   // Menacer
-  // X range is 73 to 269 : send 0 through 196
-  // Y range is 30 to 250 : send 0 through 220
+  // X range is 69 to 263 : send 0 through 194
+  // Y range is 26 to 247 : send 0 through 221
   // XG-1
   // X range is 40 to 237 : send 0 through 197
   // Y range is 21 to 210 : send 0 through 189
@@ -160,12 +161,14 @@ int main(int argc, char* argv[] )
   // X range is 24 to 247 : send 0 through 223
   // Y range is 15 to 193 : send 0 through 178
   devastar::AimCalibration ac (
+      // IR spacing
       510.0f, //  irWidth 
       260.0f, //  irHeight
-      196.0f, //  outWidth
-      220.0f, //  outHeight
-      0.0f,   //  outXMin 
-      0.0f    //  outYMin
+      // X/Y Values to receiver
+      73.0f,  //  outXMin 
+      30.0f,  //  outYMin  
+      269.0f, //  outXMax 
+      250.0f  //  outYMax
       ); 
 
   if( fs::exists( configPath ) ) {
@@ -174,24 +177,38 @@ int main(int argc, char* argv[] )
     if(!fileStorage["serial_device"].empty() ) {
       fileStorage["serial_device"] >> serialDevice;
     }
+    if(!fileStorage["min_blob_size"].empty() ) {
+      fileStorage["min_blob_size"] >> minBlobSize;
+    }
+    if(!fileStorage["max_blob_size"].empty() ) {
+      fileStorage["max_blob_size"] >> maxBlobSize;
+    }
   }
-  devastar::AimCalibrator aimCalibrator(ac);
+  devastar::AimCalibrator aimCalibrator(ac, 5, configPath.string() );
 
   std::cout << "Using: serial device: " << serialDevice << "\n";
   std::cout << " ir_width: " << ac.irWidth << "\n";
   std::cout << " ir_height: " << ac.irHeight << "\n";
-  std::cout << " output_width: " << ac.outWidth << "\n";
-  std::cout << " output_height: " << ac.outHeight << "\n";
   std::cout << " output_x_min: " << ac.outXMin << "\n";
   std::cout << " output_y_min: " << ac.outYMin << "\n";
+  std::cout << " output_x_max: " << ac.outXMax << "\n";
+  std::cout << " output_y_max: " << ac.outYMax << "\n";
+  std::cout << "    out width: " << ac.outWidth << "\n";
+  std::cout << "   out height: " << ac.outHeight << "\n";
+  std::cout << "        u_min: " << ac.uMin << "\n";
+  std::cout << "        v_min: " << ac.vMin << "\n";
+  std::cout << "        u_max: " << ac.uMax << "\n";
+  std::cout << "        v_max: " << ac.vMax << "\n";
+  std::cout << "    U/V width: " << ac.uWidth << "\n";
+  std::cout << "   U/V height: " << ac.vHeight << "\n";
 
-  bool useShortData = ac.outWidth > 255 || ac.outHeight > 255;
-  std::cout << " useShortData: " << useShortData << "\n";
+  bool use16BitData = ac.outWidth > 255 || ac.outHeight > 255;
+  std::cout << " use16BitData: " << use16BitData << "\n";
 
   // check calibration path
   fs::path calibPath("./calib.yml");
   if( !fs::exists( calibPath ) ) {
-    std::cerr << "No intrinsics calibration file found.  Please run ./bin/camera_calibrate." << std::endl;
+    std::cerr << "No camera intrinsics calibration file found.  Please run ./bin/camera_calibrate." << std::endl;
     return -1;
   }
   // setup GPIO 
@@ -279,11 +296,9 @@ int main(int argc, char* argv[] )
   init3d(worldPoints);
 #endif
 
-  // setup serial communication
+  // Set up Serial Configuration
   struct termios serial;
   char buffer[BUFFER_SIZE];
-
-  // not controlling TTY.  
   bool serialPortReady = true;
   int fd = open( serialDevice.c_str(), O_RDWR | O_NOCTTY | O_NDELAY);
   if( fd < 0 ) {
@@ -297,7 +312,6 @@ int main(int argc, char* argv[] )
     serialPortReady = false;
   }
 
-  // Set up Serial Configuration
   cfmakeraw(&serial);
 
   serial.c_cflag |= (CLOCAL | CREAD);
@@ -311,20 +325,23 @@ int main(int argc, char* argv[] )
 
   tcsetattr(fd, TCSANOW, &serial); // Apply configuration	
 
-  // setup processing variables
+  // setup image processing variables
   std::vector<cv::Point2f> centers;
   centers.resize(4);
   cv::Mat frame;
   cv::Mat gray;
   cv::Mat thresh;
   cv::Mat displayCopy;
+
+  // setup output
   unsigned char offscreen[] = { 0xFF, 0xFF, 0x00 };
-  unsigned char xyb[3];
+  unsigned char offscreen16[] = { 0xFF, 0xFF, 0xFF, 0xFF, 0x00 };
+  unsigned char xyb[3];  // 8 bits for x, y and buttons
   unsigned short sx, sy;
-  unsigned char xxyyb[5];
+  unsigned char xxyyb[5]; // 16 bits for X and Y outputs. 8 bits for buttons
   unsigned char buttons = 0;
 
-  // look at the cmameras
+  // look at the cameras
   cv::Point2f pt;
   while (true) {
 #ifdef SHOW_3D
@@ -340,6 +357,13 @@ int main(int argc, char* argv[] )
     auto endTime = std::chrono::steady_clock::now();
     std::cout << "ELAPSED TIME>> frame gpiod_line_get_value_bulk(): " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
 #endif
+    if(err)
+    {
+      perror("gpiod_line_get_value_bulk");
+      gpio_cleanup();
+      return -4;
+    }
+
     if( !values[0] ) {
       buttons |= devastar::BUTTON_A;
     }
@@ -350,16 +374,10 @@ int main(int argc, char* argv[] )
       buttons |= devastar::BUTTON_C;
     }
     if( !values[3] ) {
-      buttons |= devastar::BUTTON_D; 
-    }
-    if(err)
-    {
-      perror("gpiod_line_get_value_bulk");
-      gpio_cleanup();
-      return -4;
+      buttons |= devastar::BUTTON_D;   // start button on menacer
     }
 
-    // Process Video
+    // Process Video from camera
 #ifdef SHOW_TIME
     startTime = std::chrono::steady_clock::now();
 #endif
@@ -378,7 +396,7 @@ int main(int argc, char* argv[] )
     std::cout << "ELAPSED TIME>> cvtColor(): " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
 #endif
 
-    // threshold
+    // threshold on brightness
 #ifdef SHOW_TIME
     startTime = std::chrono::steady_clock::now();
 #endif
@@ -399,10 +417,12 @@ int main(int argc, char* argv[] )
     std::cout << "ELAPSED TIME>> cv::findContours(): " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
 #endif
 
-    // process if we have at least 4 points
 #ifdef SHOW_TIME
     startTime = std::chrono::steady_clock::now();
 #endif
+    float u = -1.0f, v = -1.0f;
+    bool solveRet = false;
+    // Look for screen intersection if we have at least 4 points
     if (contours.size() >= 4) {
 #ifdef SHOW_TIME
       startTime = std::chrono::steady_clock::now();
@@ -416,7 +436,7 @@ int main(int argc, char* argv[] )
       int current = 0;
       for( size_t i = 0; i < contours.size(); ++i ) {
         // using size cutoff to find 'good' candidates.  Look at other features like circularity, position, etc.
-        if( moments[i].m00 > 6 && moments[i].m00 < 250 ) {
+        if( moments[i].m00 > minBlobSize && moments[i].m00 < maxBlobSize ) {
           centers[current] =  cv::Point2f( static_cast<float> ( moments[i].m10 / ( moments[i].m00 + 1e-5)), static_cast<float> ( moments[i].m01 / ( moments[i].m00 + 1e-5)) );
           //#ifdef SHOW_CALC
           //std::cout << "center[" << current << "] = " << centers[current] <<  " area: " << moments[i].m00 <<std::endl;
@@ -486,7 +506,7 @@ int main(int argc, char* argv[] )
 #ifdef SHOW_TIME
       startTime = std::chrono::steady_clock::now();
 #endif
-      auto solveRet = cv::solvePnP(worldPoints, centers, cameraMatrix, distCoeffs, rvec, tvec, false, cv::SOLVEPNP_AP3P);
+      solveRet = cv::solvePnP(worldPoints, centers, cameraMatrix, distCoeffs, rvec, tvec, false, cv::SOLVEPNP_AP3P);
 #ifdef SHOW_TIME
       endTime = std::chrono::steady_clock::now();
       std::cout << "ELAPSED TIME>> solvePnP(): " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
@@ -508,13 +528,11 @@ int main(int argc, char* argv[] )
         D[1] = R.at<double>(1, 2);
         D[2] = R.at<double>(2, 2);
 
-        float u, v;
-        //bool hit = false;
 #ifdef SHOW_TIME
         startTime = std::chrono::steady_clock::now();
 #endif
-        //bool hit = intersectRect(Ray0, D, P0, S1, S2, irWidth, irHeight, u, v);
         bool hit = false;
+        //hit = intersectRect(Ray0, D, P0, S1, S2, irWidth, irHeight, u, v);
         computeUV(Ray0, D, P0, S1, S2, ac.irWidth, ac.irHeight, u, v);
 #ifdef SHOW_TIME
         endTime = std::chrono::steady_clock::now();
@@ -543,28 +561,8 @@ int main(int argc, char* argv[] )
 #ifdef SHOW_3D
         update3d( tvec, R, u, v );
 #endif
-
-        if( doCalibration ) {
-	  // pass U/V to it?
-	  if( buttons & devastar::BUTTON_A ) {
-		  if( lastButton != devastar::BUTTON_A ) {
-			  std::cout << "TRIGGER: " << u << "," << v << std::endl;
-			  lastButton = devastar::BUTTON_A;
-		  } 
-	  } else if( buttons & devastar::BUTTON_B ) {
-		  if( lastButton != devastar::BUTTON_B ) {
-			  std::cout << "Button B" << std::endl;
-			  lastButton = devastar::BUTTON_B;
-		  } 
-	  } else if( buttons & devastar::BUTTON_C ) {
-		  if( lastButton != devastar::BUTTON_C ) {
-			  std::cout << "Button C" << std::endl;
-			  lastButton = devastar::BUTTON_C;
-		  } 
-	  } else if ( buttons == 0 ) {
-  		lastButton = devastar::BUTTON_NONE;
-	  }
-        }else if( hit ) {
+        hit = u > ac.uMin && u < ac.uMax && v > ac.vMin && v < ac.vMax;
+        if( hit ) {
 #ifdef SHOW_IMAGE
           cv::Point2f pt;
           pt.x = (u/ac.irWidth) * 640.0f;
@@ -573,20 +571,24 @@ int main(int argc, char* argv[] )
           cv::imshow("points", displayCopy );
           cv::waitKey(1);
 #endif
-          if( !useShortData ) {
-            xyb[0] = (unsigned char)( ( u / ac.irWidth) * ac.outWidth  );
-            xyb[1] = (unsigned char)( ( v / ac.irHeight) * ac.outHeight  );
+          auto outX = ( ( (u-ac.uMin) / ac.uWidth) * ac.outWidth  ) + ac.outXMin;
+          auto outY = ( ( (v-ac.vMin) / ac.vHeight) * ac.outHeight + ac.outYMin  );
+          if( !use16BitData ) {
+            xyb[0] = (unsigned char)outX;
+            xyb[1] = (unsigned char)outY;
             xyb[2] = buttons;
             if(serialPortReady ) {
+		    std::cout << "write() 1: " << int( buttons ) << std::endl;
               auto ret = write( fd, xyb, sizeof(xyb) );
             }
           } else {
-            sx = (unsigned short)( ( u / ac.irWidth) * ac.outWidth  );
-            sy = (unsigned char)( ( v / ac.irHeight) * ac.outHeight  );
+            sx = (unsigned short)outX;
+            sy = (unsigned char)outY;
             memcpy( xxyyb, &sx, sizeof( unsigned short ) ); 
             memcpy( xxyyb + sizeof(unsigned short) , &sy, sizeof( unsigned short ) ); 
             xxyyb[4] = buttons;
             if(serialPortReady ) {
+		    std::cout << "write() 2: " << int( buttons ) << std::endl;
               auto ret = write( fd, xyb, sizeof(xyb) );
             }
           }
@@ -597,12 +599,85 @@ int main(int argc, char* argv[] )
 
     } // if (contours.size() >= 4) 
 
+
+
+    if( doCalibration ) {
+      // get state from aimcalibrator
+      auto currentMode = aimCalibrator.getMode();
+      auto currentShots = aimCalibrator.getCurrentSampleCount();
+      auto maxShots = aimCalibrator.getMaxSamples();
+
+      if( currentMode != lastMode ) {
+        switch( currentMode ) {
+          case devastar::AIM_CALIBRATE_UPPER_LEFT:
+            std::cout << "\33[2K\rAim at upper left corner and pull trigger: " << currentShots << "/" << maxShots << "      " << std::flush;
+            // upper left, print out message to aim at upper left pull trigger + count
+            break;
+          case devastar::AIM_CALIBRATE_LOWER_RIGHT:
+            // lower right, print out message to aim at lower right pull trigger + count
+            std::cout << "\33[2K\rAim at lower right corner and pull trigger: " << currentShots << "/" << maxShots << "      " << std::flush;
+            break;
+          case devastar::AIM_CALIBRATE_CALIBRATED:
+            std::cout << "\33[2K\rCalibrated: B to restart, C to Cancel, Start to Save          " << std::flush;
+            // tell user to press B to redo, C to cancel calibration, S to save
+            break;
+          case devastar::AIM_CALIBRATE_SAVED:
+            std::cout << "\33[2K\rSaved: B to restart calibration, C or Start to exit      " << std::flush;
+            // tell user to press B to redo, C to cancel calibration, S to save
+            break;
+          default:
+            break;
+        }
+        // set the mode
+        lastMode = currentMode;
+
+      }
+
+
+      if( buttons & devastar::BUTTON_A ) {
+        if( lastButton != devastar::BUTTON_A ) {
+          std::cout << "TRIGGER: " << u << "," << v << std::endl;
+          lastButton = devastar::BUTTON_A;
+          if( solveRet ) {
+            // u and v were calcuatled, pass on to the calibrator
+            aimCalibrator.appendSample( u, v );
+          }
+        } 
+      } else if( buttons & devastar::BUTTON_B ) {
+        if( lastButton != devastar::BUTTON_B ) {
+          std::cout << "Button B" << std::endl;
+          lastButton = devastar::BUTTON_B;
+          aimCalibrator.restartCalibration();
+        } 
+      } else if( buttons & devastar::BUTTON_C ) {
+        if( lastButton != devastar::BUTTON_C ) {
+          std::cout << "Button C" << std::endl;
+          lastButton = devastar::BUTTON_C;
+          aimCalibrator.cancelCalibration();
+        } 
+      } else if( buttons & devastar::BUTTON_D ) {
+        if( lastButton != devastar::BUTTON_D ) {
+          std::cout << "Button D" << std::endl;
+          lastButton = devastar::BUTTON_D;
+          aimCalibrator.saveCalibration();
+        } 
+      } else if ( buttons == 0 ) {
+        lastButton = devastar::BUTTON_NONE;
+      }
+    }
+
     // send -1, -1 to arduino
     if(serialPortReady ) {
-      if( !useShortData ) {
+      if( !use16BitData ) {
+	offscreen[0] = 93;
+	offscreen[1] = 110;
         offscreen[2] = buttons;
+		    std::cout << "write() 3: " << int( buttons ) << std::endl;
         auto ret = write( fd, offscreen, sizeof(offscreen) );
       } else {
+        offscreen[4] = buttons;
+		    std::cout << "write() 4: " << int( buttons ) << std::endl;
+        auto ret = write( fd, offscreen16, sizeof(offscreen16) );
       }
     }
 
