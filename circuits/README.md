@@ -1,13 +1,14 @@
+# LICENSE
+The circuits here licensed under "CERN Open Hardware LIcense Version 2 - Permissive".
+See "LICENSE-HARDWARE" in the main project folder.
+
+
 # Disclaimer
+I am *not* a practicing electrical engineer. The circuit diagrams here are what 
+I've tested on my video game consoles.  The circuits work for me, but I'm not 
+an expert at hardware design.  It's possible that I'm doing something incorrectly 
+and may damage a console.  **USE THIS PROJECT AT YOUR OWN RISK**
 
-I am *not* a practicing electrical engineer. The circuit diagrams here 
-represent what I've tried on my video game consoles.  THey seem to work 
-for me, but I don't really know what I"m doing here.
 
-THERE IS NO WARRANTY FOR THE CIRCUITS OR PROGRAMS HERE, TO THE EXTENT PERMITTED
-BY APPLICABLE LAW. THE CIRCUITS AND CODE ARE PROVIDED “AS IS” WITHOUT WARRANTY OF
-ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE
-IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE
-ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE OF THE CIRCUIT AND CODE IS WITH YOU.
-SHOULD THE CIRCUIT OR CODE PROVE DEFECTIVE, YOU ASSUME THE COST OF ALL NECESSARY
-SERVICING, REPAIR OR CORRECTION.
+
+
