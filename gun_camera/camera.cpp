@@ -25,9 +25,9 @@
 #define DEFAULT_SERIAL_DEVICE "/dev/ttyACM0"
 
 #define SHOW_IMAGE
-#define SHOW_CALC
-#define SHOW_3D
-#define SHOW_TIME
+//#define SHOW_CALC
+//#define SHOW_3D
+//#define SHOW_TIME
 
 
 #include <filesystem>
@@ -433,49 +433,34 @@ int main(int argc, char* argv[] )
         moments[i] = cv::moments( contours[i] );
       }
 
-      int current = 0;
+      int centerCount = 0;
       for( size_t i = 0; i < contours.size(); ++i ) {
         // using size cutoff to find 'good' candidates.  Look at other features like circularity, position, etc.
         if( moments[i].m00 > minBlobSize && moments[i].m00 < maxBlobSize ) {
-          centers[current] =  cv::Point2f( static_cast<float> ( moments[i].m10 / ( moments[i].m00 + 1e-5)), static_cast<float> ( moments[i].m01 / ( moments[i].m00 + 1e-5)) );
-          //#ifdef SHOW_CALC
-          //std::cout << "center[" << current << "] = " << centers[current] <<  " area: " << moments[i].m00 <<std::endl;
+
+          if( centerCount < 4 ) {
+            //centers[centerCount] =  cv::Point2f( static_cast<float> ( moments[i].m10 / ( moments[i].m00 + 1e-5)), static_cast<float> ( moments[i].m01 / ( moments[i].m00 + 1e-5)) );
+            centers[centerCount] = cv::Point2f( static_cast<float> ( moments[i].m10 / ( moments[i].m00 + 1e-5)), static_cast<float> ( moments[i].m01 / ( moments[i].m00 + 1e-5)) );
+            //#ifdef SHOW_CALC
+         
+            //std::cout << "center[" << centerCount << "] = " << centers[centerCount] <<  " area: " << moments[i].m00 <<std::endl;
+          }
           //#endif
-          ++current;
-          if( current == 4 ) {
+          ++centerCount;
+          
+          if( centerCount == 4 ) {
             break;
           }
         }
+      }
+      if( centerCount != 4 ) {
+        continue;
       }
 #ifdef SHOW_TIME
       endTime = std::chrono::steady_clock::now();
       std::cout << "ELAPSED TIME>> get centers from moments: " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
 #endif
 
-      //////  REORDER center //////////////////////////////
-#ifdef SHOW_TIME
-      startTime = std::chrono::steady_clock::now();
-#endif
-      cv::Point2f a = centers[0];		
-      cv::Point2f b = centers[1];		
-      if( centers[3].x > centers[2].x ) {
-        centers[0] = centers[2];
-        centers[1] = centers[3];
-      } else {
-        centers[0] = centers[3];
-        centers[1] = centers[2];
-      }
-      if( b.x > a.x ) {
-        centers[2] = a;
-        centers[3] = b;
-      } else {
-        centers[2] = b;
-        centers[3] = a;
-      }
-#ifdef SHOW_TIME
-      endTime = std::chrono::steady_clock::now();
-      std::cout << "ELAPSED TIME>> rerder centers: " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
-#endif
 
 #ifdef SHOW_IMAGE
       // display it
@@ -484,17 +469,26 @@ int main(int argc, char* argv[] )
       for( int i=0; i < centers.size(); ++ i ) {
         // draw point on image
         cv::Scalar color( 0,0,255 );
-        if( i > 1 ) {
-          // Green are the later two
+        if( i == 1 ) {
           color = cv::Scalar( 0,255,0 );
-          cv::circle( displayCopy, centers[i], 2.0f, color, 2.0f);
-        } else {
-          // RED
-          cv::circle( displayCopy, centers[i], 10.0f, color, 2.0f);
+        } else if( i== 2 ) {
+          color = cv::Scalar( 255,0,0 );
+        } else if( i== 3 ) {
+          color = cv::Scalar( 255,255,0 );
         }
+        cv::circle( displayCopy, centers[i], 10.0f, color, 2.0f);
       }
       cv::circle( displayCopy, pt, 5.0f, cv::Scalar(0,255,255), 3.0f);
-
+/*
+      std::stringstream ssfn;
+      ssfn << "SORT_" << pt1.x << "_" << pt2.x << "_" << pt3.x << "_" << pt4.x << "_c_" << contours.size() << ".png";
+      cv::imwrite( ssfn.str(), thresh );
+      auto contourCopy = frame.clone();
+      cv::drawContours( contourCopy, contours, -1, ( 255,0, 255 ), 3);
+      ssfn.str("");
+      ssfn << "CONT_" << pt1.x << "_" << pt2.x << "_" << pt3.x << "_" << pt4.x << "_c_" << contours.size() << ".png";
+      cv::imwrite( ssfn.str(), contourCopy );
+      */
       cv::imshow("points", displayCopy );
       cv::waitKey(1);
 #endif
