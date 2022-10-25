@@ -462,6 +462,85 @@ int main(int argc, char* argv[] )
 #endif
 
 
+#ifdef SHOW_TIME
+      startTime = std::chrono::steady_clock::now();
+#endif
+      size_t a=0;
+      size_t b=1;
+      size_t c=2;
+      size_t d=3;
+      size_t ab1, ab2, cd1,cd2;
+      size_t i1, i2, i3, i4, m1, m2;
+
+      // sort along X
+      // split into 2 sets {a,b}  and {c,d}
+      if( centers[a].x < centers[b].x ) {
+        ab1 = a;
+        ab2 = b;
+      } else {
+        ab1 = b;
+        ab2 = a;
+      }
+
+      if( centers[c].x < centers[d].x ) {
+        cd1 = c;
+        cd2 = d;
+      } else {
+        cd1 = d;
+        cd2 = c;
+      }
+
+      if( centers[ab1].x < centers[cd1].x ) {
+        i1 = ab1;
+        m1 = cd1;
+      } else {
+        i1 = cd1;
+        m1 = ab1;
+      }
+
+      if( centers[ab2].x > centers[cd2].x ) {
+        i4 = ab2;
+        m2 = cd2;
+      } else {
+        i4 = cd2;
+        m2 = ab2;
+      }
+
+      if( centers[m1].x < centers[m2].x ) {
+        i2 = m1;
+        i3 = m2;
+      } else {
+        i2 = m2;
+        i3 = m1;
+      }
+
+      cv::Point2f pt1 = centers[i1];
+      cv::Point2f pt2 = centers[i2];
+      cv::Point2f pt3 = centers[i3];
+      cv::Point2f pt4 = centers[i4];
+
+      // compare higehts of first two and last two
+      if( pt1.y < pt2.y ) {
+        centers[0] = pt1;
+        centers[2] = pt2;
+      } else {
+        centers[0] = pt2;
+        centers[2] = pt1;
+      }
+      if( pt3.y < pt4.y ) {
+        centers[1] = pt3;
+        centers[3] = pt4;
+      } else {
+        centers[1] = pt4;
+        centers[3] = pt3;
+      }
+
+#ifdef SHOW_TIME
+      endTime = std::chrono::steady_clock::now();
+      std::cout << "ELAPSED TIME>> sort centers: " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
+#endif
+
+
 #ifdef SHOW_IMAGE
       // display it
       //cv::cvtColor( thresh, displayCopy, cv::COLOR_GRAY2BGR); 
@@ -478,17 +557,8 @@ int main(int argc, char* argv[] )
         }
         cv::circle( displayCopy, centers[i], 10.0f, color, 2.0f);
       }
-      cv::circle( displayCopy, pt, 5.0f, cv::Scalar(0,255,255), 3.0f);
-/*
-      std::stringstream ssfn;
-      ssfn << "SORT_" << pt1.x << "_" << pt2.x << "_" << pt3.x << "_" << pt4.x << "_c_" << contours.size() << ".png";
-      cv::imwrite( ssfn.str(), thresh );
-      auto contourCopy = frame.clone();
-      cv::drawContours( contourCopy, contours, -1, ( 255,0, 255 ), 3);
-      ssfn.str("");
-      ssfn << "CONT_" << pt1.x << "_" << pt2.x << "_" << pt3.x << "_" << pt4.x << "_c_" << contours.size() << ".png";
-      cv::imwrite( ssfn.str(), contourCopy );
-      */
+      //cv::circle( displayCopy, pt, 5.0f, cv::Scalar(0,255,255), 3.0f);
+      
       cv::imshow("points", displayCopy );
       cv::waitKey(1);
 #endif
@@ -572,7 +642,6 @@ int main(int argc, char* argv[] )
             xyb[1] = (unsigned char)outY;
             xyb[2] = buttons;
             if(serialPortReady ) {
-		    std::cout << "write() 1: " << int( buttons ) << std::endl;
               auto ret = write( fd, xyb, sizeof(xyb) );
             }
           } else {
@@ -582,7 +651,6 @@ int main(int argc, char* argv[] )
             memcpy( xxyyb + sizeof(unsigned short) , &sy, sizeof( unsigned short ) ); 
             xxyyb[4] = buttons;
             if(serialPortReady ) {
-		    std::cout << "write() 2: " << int( buttons ) << std::endl;
               auto ret = write( fd, xyb, sizeof(xyb) );
             }
           }
@@ -663,8 +731,6 @@ int main(int argc, char* argv[] )
     // send -1, -1 to arduino
     if(serialPortReady ) {
       if( !use16BitData ) {
-	offscreen[0] = 93;
-	offscreen[1] = 110;
         offscreen[2] = buttons;
 		    std::cout << "write() 3: " << int( buttons ) << std::endl;
         auto ret = write( fd, offscreen, sizeof(offscreen) );
