@@ -116,13 +116,13 @@ void computeUV(const cv::Vec3f& R0, // ray start
 
 
 // Button variables 
-struct gpiod_chip * chip;
-struct gpiod_line_request_config config;
-struct gpiod_line_bulk lines;
+struct gpiod_chip * g_chip;
+struct gpiod_line_request_config g_config;
+struct gpiod_line_bulk g_lines;
 
 void gpio_cleanup() {
-  gpiod_line_release_bulk( &lines );
-  gpiod_chip_close( chip );
+  gpiod_line_release_bulk( &g_lines );
+  gpiod_chip_close( g_chip );
 }
 
 
@@ -215,8 +215,8 @@ int main(int argc, char* argv[] )
   unsigned int offsets[5];
   int values[5];
   int gpioErr;
-  chip = gpiod_chip_open("/dev/gpiochip0");
-  if(!chip)
+  g_chip = gpiod_chip_open("/dev/gpiochip0");
+  if(!g_chip)
   {
     perror("gpiod_chip_open");
     return -1;
@@ -233,7 +233,7 @@ int main(int argc, char* argv[] )
   values[2] = -1;
   values[3] = -1;
   values[4] = -1;
-  auto err = gpiod_chip_get_lines(chip, offsets, 5, &lines);
+  auto err = gpiod_chip_get_lines(g_chip, offsets, 5, &g_lines);
   if(err)
   {
     perror("gpiod_chip_get_lines");
@@ -241,13 +241,13 @@ int main(int argc, char* argv[] )
     return -2;
   }
 
-  memset(&config, 0, sizeof(config));
-  config.consumer = "devestar";
-  config.request_type = GPIOD_LINE_REQUEST_DIRECTION_INPUT;
-  config.flags = 0;
+  memset(&g_config, 0, sizeof(g_config));
+  g_config.consumer = "devestar";
+  g_config.request_type = GPIOD_LINE_REQUEST_DIRECTION_INPUT;
+  g_config.flags = 0;
 
   // open lines for input
-  err = gpiod_line_request_bulk(&lines, &config, values);
+  err = gpiod_line_request_bulk(&g_lines, &g_config, values);
   if(err)
   {
     perror("gpiod_line_request_bulk");
@@ -354,7 +354,7 @@ int main(int argc, char* argv[] )
 #ifdef SHOW_TIME
     auto startTime = std::chrono::steady_clock::now();
 #endif
-    err = gpiod_line_get_value_bulk(&lines, values);
+    err = gpiod_line_get_value_bulk(&g_lines, values);
 #ifdef SHOW_TIME
     auto endTime = std::chrono::steady_clock::now();
     std::cout << "ELAPSED TIME>> frame gpiod_line_get_value_bulk(): " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
