@@ -212,8 +212,8 @@ int main(int argc, char* argv[] )
     return -1;
   }
   // setup GPIO 
-  unsigned int offsets[4];
-  int values[4];
+  unsigned int offsets[5];
+  int values[5];
   int gpioErr;
   chip = gpiod_chip_open("/dev/gpiochip0");
   if(!chip)
@@ -227,11 +227,13 @@ int main(int argc, char* argv[] )
   offsets[1] = 5;
   offsets[2] = 13;
   offsets[3] = 19; 
+  offsets[4] = 26; 
   values[0] = -1;
   values[1] = -1;
   values[2] = -1;
   values[3] = -1;
-  auto err = gpiod_chip_get_lines(chip, offsets, 4, &lines);
+  values[4] = -1;
+  auto err = gpiod_chip_get_lines(chip, offsets, 5, &lines);
   if(err)
   {
     perror("gpiod_chip_get_lines");
@@ -376,6 +378,10 @@ int main(int argc, char* argv[] )
     if( !values[3] ) {
       buttons |= devastar::BUTTON_D;   // start button on menacer
     }
+    if( !values[4] ) {
+      buttons |= devastar::BUTTON_E;   // turbo switch
+    }
+
 
     // Process Video from camera
 #ifdef SHOW_TIME
@@ -442,301 +448,301 @@ int main(int argc, char* argv[] )
             //centers[centerCount] =  cv::Point2f( static_cast<float> ( moments[i].m10 / ( moments[i].m00 + 1e-5)), static_cast<float> ( moments[i].m01 / ( moments[i].m00 + 1e-5)) );
             centers[centerCount] = cv::Point2f( static_cast<float> ( moments[i].m10 / ( moments[i].m00 + 1e-5)), static_cast<float> ( moments[i].m01 / ( moments[i].m00 + 1e-5)) );
             //#ifdef SHOW_CALC
-         
+
             //std::cout << "center[" << centerCount << "] = " << centers[centerCount] <<  " area: " << moments[i].m00 <<std::endl;
           }
           //#endif
           ++centerCount;
-          
+
           if( centerCount == 4 ) {
             break;
           }
         }
       }
-      if( centerCount != 4 ) {
-        continue;
-      }
+
+      // only calculate hit if count is 4
+      if( centerCount == 4 ) {
 #ifdef SHOW_TIME
-      endTime = std::chrono::steady_clock::now();
-      std::cout << "ELAPSED TIME>> get centers from moments: " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
+        endTime = std::chrono::steady_clock::now();
+        std::cout << "ELAPSED TIME>> get centers from moments: " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
 #endif
 
-
-#ifdef SHOW_TIME
-      startTime = std::chrono::steady_clock::now();
-#endif
-      size_t a=0;
-      size_t b=1;
-      size_t c=2;
-      size_t d=3;
-      size_t ab1, ab2, cd1,cd2;
-      size_t i1, i2, i3, i4, m1, m2;
-
-      // sort along X
-      // split into 2 sets {a,b}  and {c,d}
-      if( centers[a].x < centers[b].x ) {
-        ab1 = a;
-        ab2 = b;
-      } else {
-        ab1 = b;
-        ab2 = a;
-      }
-
-      if( centers[c].x < centers[d].x ) {
-        cd1 = c;
-        cd2 = d;
-      } else {
-        cd1 = d;
-        cd2 = c;
-      }
-
-      if( centers[ab1].x < centers[cd1].x ) {
-        i1 = ab1;
-        m1 = cd1;
-      } else {
-        i1 = cd1;
-        m1 = ab1;
-      }
-
-      if( centers[ab2].x > centers[cd2].x ) {
-        i4 = ab2;
-        m2 = cd2;
-      } else {
-        i4 = cd2;
-        m2 = ab2;
-      }
-
-      if( centers[m1].x < centers[m2].x ) {
-        i2 = m1;
-        i3 = m2;
-      } else {
-        i2 = m2;
-        i3 = m1;
-      }
-
-      cv::Point2f pt1 = centers[i1];
-      cv::Point2f pt2 = centers[i2];
-      cv::Point2f pt3 = centers[i3];
-      cv::Point2f pt4 = centers[i4];
-
-      // compare higehts of first two and last two
-      if( pt1.y < pt2.y ) {
-        centers[0] = pt1;
-        centers[2] = pt2;
-      } else {
-        centers[0] = pt2;
-        centers[2] = pt1;
-      }
-      if( pt3.y < pt4.y ) {
-        centers[1] = pt3;
-        centers[3] = pt4;
-      } else {
-        centers[1] = pt4;
-        centers[3] = pt3;
-      }
-
-#ifdef SHOW_TIME
-      endTime = std::chrono::steady_clock::now();
-      std::cout << "ELAPSED TIME>> sort centers: " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
-#endif
-
-
-#ifdef SHOW_IMAGE
-      // display it
-      //cv::cvtColor( thresh, displayCopy, cv::COLOR_GRAY2BGR); 
-      displayCopy = frame.clone();
-      for( int i=0; i < centers.size(); ++ i ) {
-        // draw point on image
-        cv::Scalar color( 0,0,255 );
-        if( i == 1 ) {
-          color = cv::Scalar( 0,255,0 );
-        } else if( i== 2 ) {
-          color = cv::Scalar( 255,0,0 );
-        } else if( i== 3 ) {
-          color = cv::Scalar( 255,255,0 );
-        }
-        cv::circle( displayCopy, centers[i], 10.0f, color, 2.0f);
-      }
-      //cv::circle( displayCopy, pt, 5.0f, cv::Scalar(0,255,255), 3.0f);
-      
-      cv::imshow("points", displayCopy );
-      cv::waitKey(1);
-#endif
-
-      // rvec- is the rotation vector
-      // tvec- is the translation vector 
-      cv::Mat rvec, tvec;
-      std::vector< cv::Mat > rvecs, tvecs;	
-#ifdef SHOW_TIME
-      startTime = std::chrono::steady_clock::now();
-#endif
-      solveRet = cv::solvePnP(worldPoints, centers, cameraMatrix, distCoeffs, rvec, tvec, false, cv::SOLVEPNP_AP3P);
-#ifdef SHOW_TIME
-      endTime = std::chrono::steady_clock::now();
-      std::cout << "ELAPSED TIME>> solvePnP(): " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
-#endif
-      if( solveRet ) {
-
-        cv::Mat R;
-        cv::Rodrigues(rvec, R); // get rotation matrix R ( 3x3 ) from rotation vector 
-        R = R.t(); // inverse
-        tvec = -R * tvec; // translation of inverseA == actual camera position
-
-        // compute itersection
-        cv::Vec3f Ray0,D;
-        Ray0[0] = tvec.at<double>(0);
-        Ray0[1] = tvec.at<double>(1);
-        Ray0[2] = tvec.at<double>(2);
-
-        D[0] = R.at<double>(0, 2);
-        D[1] = R.at<double>(1, 2);
-        D[2] = R.at<double>(2, 2);
 
 #ifdef SHOW_TIME
         startTime = std::chrono::steady_clock::now();
 #endif
-        bool hit = false;
-        //hit = intersectRect(Ray0, D, P0, S1, S2, irWidth, irHeight, u, v);
-        computeUV(Ray0, D, P0, S1, S2, ac.irWidth, ac.irHeight, u, v);
+        size_t a=0;
+        size_t b=1;
+        size_t c=2;
+        size_t d=3;
+        size_t ab1, ab2, cd1,cd2;
+        size_t i1, i2, i3, i4, m1, m2;
+
+        // sort along X
+        // split into 2 sets {a,b}  and {c,d}
+        if( centers[a].x < centers[b].x ) {
+          ab1 = a;
+          ab2 = b;
+        } else {
+          ab1 = b;
+          ab2 = a;
+        }
+
+        if( centers[c].x < centers[d].x ) {
+          cd1 = c;
+          cd2 = d;
+        } else {
+          cd1 = d;
+          cd2 = c;
+        }
+
+        if( centers[ab1].x < centers[cd1].x ) {
+          i1 = ab1;
+          m1 = cd1;
+        } else {
+          i1 = cd1;
+          m1 = ab1;
+        }
+
+        if( centers[ab2].x > centers[cd2].x ) {
+          i4 = ab2;
+          m2 = cd2;
+        } else {
+          i4 = cd2;
+          m2 = ab2;
+        }
+
+        if( centers[m1].x < centers[m2].x ) {
+          i2 = m1;
+          i3 = m2;
+        } else {
+          i2 = m2;
+          i3 = m1;
+        }
+
+        cv::Point2f pt1 = centers[i1];
+        cv::Point2f pt2 = centers[i2];
+        cv::Point2f pt3 = centers[i3];
+        cv::Point2f pt4 = centers[i4];
+
+        // compare higehts of first two and last two
+        if( pt1.y < pt2.y ) {
+          centers[0] = pt1;
+          centers[2] = pt2;
+        } else {
+          centers[0] = pt2;
+          centers[2] = pt1;
+        }
+        if( pt3.y < pt4.y ) {
+          centers[1] = pt3;
+          centers[3] = pt4;
+        } else {
+          centers[1] = pt4;
+          centers[3] = pt3;
+        }
+
 #ifdef SHOW_TIME
         endTime = std::chrono::steady_clock::now();
-        std::cout << "ELAPSED TIME>> intersectRect(): " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
+        std::cout << "ELAPSED TIME>> sort centers: " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
+#endif
+
+
+#ifdef SHOW_IMAGE
+        // display it
+        //cv::cvtColor( thresh, displayCopy, cv::COLOR_GRAY2BGR); 
+        displayCopy = frame.clone();
+        for( int i=0; i < centers.size(); ++ i ) {
+          // draw point on image
+          cv::Scalar color( 0,0,255 );
+          if( i == 1 ) {
+            color = cv::Scalar( 0,255,0 );
+          } else if( i== 2 ) {
+            color = cv::Scalar( 255,0,0 );
+          } else if( i== 3 ) {
+            color = cv::Scalar( 255,255,0 );
+          }
+          cv::circle( displayCopy, centers[i], 10.0f, color, 2.0f);
+        }
+        //cv::circle( displayCopy, pt, 5.0f, cv::Scalar(0,255,255), 3.0f);
+
+        cv::imshow("points", displayCopy );
+        cv::waitKey(1);
+#endif
+
+        // rvec- is the rotation vector
+        // tvec- is the translation vector 
+        cv::Mat rvec, tvec;
+        std::vector< cv::Mat > rvecs, tvecs;	
+#ifdef SHOW_TIME
+        startTime = std::chrono::steady_clock::now();
+#endif
+        solveRet = cv::solvePnP(worldPoints, centers, cameraMatrix, distCoeffs, rvec, tvec, false, cv::SOLVEPNP_AP3P);
+#ifdef SHOW_TIME
+        endTime = std::chrono::steady_clock::now();
+        std::cout << "ELAPSED TIME>> solvePnP(): " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
+#endif
+        if( solveRet ) {
+
+          cv::Mat R;
+          cv::Rodrigues(rvec, R); // get rotation matrix R ( 3x3 ) from rotation vector 
+          R = R.t(); // inverse
+          tvec = -R * tvec; // translation of inverseA == actual camera position
+
+          // compute itersection
+          cv::Vec3f Ray0,D;
+          Ray0[0] = tvec.at<double>(0);
+          Ray0[1] = tvec.at<double>(1);
+          Ray0[2] = tvec.at<double>(2);
+
+          D[0] = R.at<double>(0, 2);
+          D[1] = R.at<double>(1, 2);
+          D[2] = R.at<double>(2, 2);
+
+#ifdef SHOW_TIME
+          startTime = std::chrono::steady_clock::now();
+#endif
+          bool hit = false;
+          //hit = intersectRect(Ray0, D, P0, S1, S2, irWidth, irHeight, u, v);
+          computeUV(Ray0, D, P0, S1, S2, ac.irWidth, ac.irHeight, u, v);
+#ifdef SHOW_TIME
+          endTime = std::chrono::steady_clock::now();
+          std::cout << "ELAPSED TIME>> intersectRect(): " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
 #endif
 
 
 #ifdef SHOW_CALC
-        std::cout << "rvec: " << rvec << std::endl;	
-        std::cout << "tvec: " << tvec << std::endl;
-        std::cout << "R: " << R << std::endl;
-        std::cout << "inverse tvec: " << tvec << std::endl;
+          std::cout << "rvec: " << rvec << std::endl;	
+          std::cout << "tvec: " << tvec << std::endl;
+          std::cout << "R: " << R << std::endl;
+          std::cout << "inverse tvec: " << tvec << std::endl;
 
-        std::cout << "Ray0: " << Ray0 << std::endl;
-        std::cout << "D: " << D << std::endl;
-        std::cout << "P0: " << P0 << std::endl;
-        std::cout << "S1: " << S1 << std::endl;
-        std::cout << "S2: " << S2 << std::endl;
-        std::cout << "irWidth: " << ac.irWidth  << std::endl;
-        std::cout << "irHeight: " << ac.irHeight << std::endl;
-        std::cout << "U: " << u << " V: " << v << " hit: " << hit << std::endl;
+          std::cout << "Ray0: " << Ray0 << std::endl;
+          std::cout << "D: " << D << std::endl;
+          std::cout << "P0: " << P0 << std::endl;
+          std::cout << "S1: " << S1 << std::endl;
+          std::cout << "S2: " << S2 << std::endl;
+          std::cout << "irWidth: " << ac.irWidth  << std::endl;
+          std::cout << "irHeight: " << ac.irHeight << std::endl;
+          std::cout << "U: " << u << " V: " << v << " hit: " << hit << std::endl;
 #endif
 
 
 
 #ifdef SHOW_3D
-        update3d( tvec, R, u, v );
+          update3d( tvec, R, u, v );
 #endif
-        hit = u > ac.uMin && u < ac.uMax && v > ac.vMin && v < ac.vMax;
-        if( hit ) {
+          hit = u > ac.uMin && u < ac.uMax && v > ac.vMin && v < ac.vMax;
+          if( hit ) {
 #ifdef SHOW_IMAGE
-          cv::Point2f pt;
-          pt.x = (u/ac.irWidth) * 640.0f;
-          pt.y = (v/ac.irHeight) * 480.0f;
-          cv::circle( displayCopy, pt, 5.0f, cv::Scalar(0,255,255), 3.0f);
-          cv::imshow("points", displayCopy );
-          cv::waitKey(1);
+            cv::Point2f pt;
+            pt.x = (u/ac.irWidth) * 640.0f;
+            pt.y = (v/ac.irHeight) * 480.0f;
+            cv::circle( displayCopy, pt, 5.0f, cv::Scalar(0,255,255), 3.0f);
+            cv::imshow("points", displayCopy );
+            cv::waitKey(1);
 #endif
-          auto outX = ( ( (u-ac.uMin) / ac.uWidth) * ac.outWidth  ) + ac.outXMin;
-          auto outY = ( ( (v-ac.vMin) / ac.vHeight) * ac.outHeight + ac.outYMin  );
-          if( !use16BitData ) {
-            xyb[0] = (unsigned char)outX;
-            xyb[1] = (unsigned char)outY;
-            xyb[2] = buttons;
-            if(serialPortReady ) {
-              auto ret = write( fd, xyb, sizeof(xyb) );
+            auto outX = ( ( (u-ac.uMin) / ac.uWidth) * ac.outWidth  ) + ac.outXMin;
+            auto outY = ( ( (v-ac.vMin) / ac.vHeight) * ac.outHeight + ac.outYMin  );
+            if( !use16BitData ) {
+              xyb[0] = (unsigned char)outX;
+              xyb[1] = (unsigned char)outY;
+              xyb[2] = buttons;
+              if(serialPortReady ) {
+                auto ret = write( fd, xyb, sizeof(xyb) );
+              }
+            } else {
+              sx = (unsigned short)outX;
+              sy = (unsigned char)outY;
+              memcpy( xxyyb, &sx, sizeof( unsigned short ) ); 
+              memcpy( xxyyb + sizeof(unsigned short) , &sy, sizeof( unsigned short ) ); 
+              xxyyb[4] = buttons;
+              if(serialPortReady ) {
+                auto ret = write( fd, xyb, sizeof(xyb) );
+              }
             }
-          } else {
-            sx = (unsigned short)outX;
-            sy = (unsigned char)outY;
-            memcpy( xxyyb, &sx, sizeof( unsigned short ) ); 
-            memcpy( xxyyb + sizeof(unsigned short) , &sy, sizeof( unsigned short ) ); 
-            xxyyb[4] = buttons;
-            if(serialPortReady ) {
-              auto ret = write( fd, xyb, sizeof(xyb) );
-            }
-          }
-          continue;  // head back up the loop
-        } // if( hit ) 
-      } // if( solveRet ) 
+            continue;  // head back up the loop
+          } // if( hit ) 
+        } // if( solveRet ) 
 
+
+
+        if( doCalibration ) {
+          // get state from aimcalibrator
+          auto currentMode = aimCalibrator.getMode();
+          auto currentShots = aimCalibrator.getCurrentSampleCount();
+          auto maxShots = aimCalibrator.getMaxSamples();
+
+          if( currentMode != lastMode ) {
+            switch( currentMode ) {
+              case devastar::AIM_CALIBRATE_UPPER_LEFT:
+                std::cout << "\33[2K\rAim at upper left corner and pull trigger: " << currentShots << "/" << maxShots << "      " << std::flush;
+                // upper left, print out message to aim at upper left pull trigger + count
+                break;
+              case devastar::AIM_CALIBRATE_LOWER_RIGHT:
+                // lower right, print out message to aim at lower right pull trigger + count
+                std::cout << "\33[2K\rAim at lower right corner and pull trigger: " << currentShots << "/" << maxShots << "      " << std::flush;
+                break;
+              case devastar::AIM_CALIBRATE_CALIBRATED:
+                std::cout << "\33[2K\rCalibrated: B to restart, C to Cancel, Start to Save          " << std::flush;
+                // tell user to press B to redo, C to cancel calibration, S to save
+                break;
+              case devastar::AIM_CALIBRATE_SAVED:
+                std::cout << "\33[2K\rSaved: B to restart calibration, C or Start to exit      " << std::flush;
+                // tell user to press B to redo, C to cancel calibration, S to save
+                break;
+              default:
+                break;
+            }
+            // set the mode
+            lastMode = currentMode;
+
+          }
+
+
+          if( buttons & devastar::BUTTON_A ) {
+            if( lastButton != devastar::BUTTON_A ) {
+              std::cout << "TRIGGER: " << u << "," << v << std::endl;
+              lastButton = devastar::BUTTON_A;
+              if( solveRet ) {
+                // u and v were calcuatled, pass on to the calibrator
+                aimCalibrator.appendSample( u, v );
+              }
+            } 
+          } else if( buttons & devastar::BUTTON_B ) {
+            if( lastButton != devastar::BUTTON_B ) {
+              std::cout << "Button B" << std::endl;
+              lastButton = devastar::BUTTON_B;
+              aimCalibrator.restartCalibration();
+            } 
+          } else if( buttons & devastar::BUTTON_C ) {
+            if( lastButton != devastar::BUTTON_C ) {
+              std::cout << "Button C" << std::endl;
+              lastButton = devastar::BUTTON_C;
+              aimCalibrator.cancelCalibration();
+            } 
+          } else if( buttons & devastar::BUTTON_D ) {
+            if( lastButton != devastar::BUTTON_D ) {
+              std::cout << "Button D" << std::endl;
+              lastButton = devastar::BUTTON_D;
+              aimCalibrator.saveCalibration();
+            } 
+          } else if ( buttons == 0 ) {
+            lastButton = devastar::BUTTON_NONE;
+          }
+        } // if( doCalibration ) {
+
+      } // if( centerCount == 4 ) 
 
     } // if (contours.size() >= 4) 
 
-
-
-    if( doCalibration ) {
-      // get state from aimcalibrator
-      auto currentMode = aimCalibrator.getMode();
-      auto currentShots = aimCalibrator.getCurrentSampleCount();
-      auto maxShots = aimCalibrator.getMaxSamples();
-
-      if( currentMode != lastMode ) {
-        switch( currentMode ) {
-          case devastar::AIM_CALIBRATE_UPPER_LEFT:
-            std::cout << "\33[2K\rAim at upper left corner and pull trigger: " << currentShots << "/" << maxShots << "      " << std::flush;
-            // upper left, print out message to aim at upper left pull trigger + count
-            break;
-          case devastar::AIM_CALIBRATE_LOWER_RIGHT:
-            // lower right, print out message to aim at lower right pull trigger + count
-            std::cout << "\33[2K\rAim at lower right corner and pull trigger: " << currentShots << "/" << maxShots << "      " << std::flush;
-            break;
-          case devastar::AIM_CALIBRATE_CALIBRATED:
-            std::cout << "\33[2K\rCalibrated: B to restart, C to Cancel, Start to Save          " << std::flush;
-            // tell user to press B to redo, C to cancel calibration, S to save
-            break;
-          case devastar::AIM_CALIBRATE_SAVED:
-            std::cout << "\33[2K\rSaved: B to restart calibration, C or Start to exit      " << std::flush;
-            // tell user to press B to redo, C to cancel calibration, S to save
-            break;
-          default:
-            break;
-        }
-        // set the mode
-        lastMode = currentMode;
-
-      }
-
-
-      if( buttons & devastar::BUTTON_A ) {
-        if( lastButton != devastar::BUTTON_A ) {
-          std::cout << "TRIGGER: " << u << "," << v << std::endl;
-          lastButton = devastar::BUTTON_A;
-          if( solveRet ) {
-            // u and v were calcuatled, pass on to the calibrator
-            aimCalibrator.appendSample( u, v );
-          }
-        } 
-      } else if( buttons & devastar::BUTTON_B ) {
-        if( lastButton != devastar::BUTTON_B ) {
-          std::cout << "Button B" << std::endl;
-          lastButton = devastar::BUTTON_B;
-          aimCalibrator.restartCalibration();
-        } 
-      } else if( buttons & devastar::BUTTON_C ) {
-        if( lastButton != devastar::BUTTON_C ) {
-          std::cout << "Button C" << std::endl;
-          lastButton = devastar::BUTTON_C;
-          aimCalibrator.cancelCalibration();
-        } 
-      } else if( buttons & devastar::BUTTON_D ) {
-        if( lastButton != devastar::BUTTON_D ) {
-          std::cout << "Button D" << std::endl;
-          lastButton = devastar::BUTTON_D;
-          aimCalibrator.saveCalibration();
-        } 
-      } else if ( buttons == 0 ) {
-        lastButton = devastar::BUTTON_NONE;
-      }
-    }
 
     // send -1, -1 to arduino
     if(serialPortReady ) {
       if( !use16BitData ) {
         offscreen[2] = buttons;
-		    std::cout << "write() 3: " << int( buttons ) << std::endl;
         auto ret = write( fd, offscreen, sizeof(offscreen) );
       } else {
         offscreen[4] = buttons;
-		    std::cout << "write() 4: " << int( buttons ) << std::endl;
         auto ret = write( fd, offscreen16, sizeof(offscreen16) );
       }
     }

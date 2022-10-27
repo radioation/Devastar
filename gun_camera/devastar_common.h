@@ -9,7 +9,8 @@ namespace devastar {
     BUTTON_A = 0x01,
     BUTTON_B = 0x02,
     BUTTON_C = 0x04,
-    BUTTON_D = 0x08
+    BUTTON_D = 0x08,
+    BUTTON_E = 0x16
   };
 
 }
