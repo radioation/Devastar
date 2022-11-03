@@ -581,6 +581,7 @@ int main(int argc, char* argv[] )
         endTime = std::chrono::steady_clock::now();
         std::cout << "ELAPSED TIME>> solvePnP(): " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
 #endif
+        bool hit = false;
         if( solveRet ) {
 
           cv::Mat R;
@@ -601,7 +602,6 @@ int main(int argc, char* argv[] )
 #ifdef SHOW_TIME
           startTime = std::chrono::steady_clock::now();
 #endif
-          bool hit = false;
           //hit = intersectRect(Ray0, D, P0, S1, S2, irWidth, irHeight, u, v);
           computeUV(Ray0, D, P0, S1, S2, ac.irWidth, ac.irHeight, u, v);
 #ifdef SHOW_TIME
@@ -641,8 +641,9 @@ int main(int argc, char* argv[] )
             cv::imshow("points", displayCopy );
             cv::waitKey(1);
 #endif
-            auto outX = ( ( (u-ac.uMin) / ac.uWidth) * ac.outWidth  ) + ac.outXMin;
-            auto outY = ( ( (v-ac.vMin) / ac.vHeight) * ac.outHeight + ac.outYMin  );
+	    // arduino has the min/max values  We just need the X/Y range calculated from the percentage
+            auto outX = ( (u-ac.uMin) / ac.uWidth) * ac.outWidth;
+            auto outY = ( (v-ac.vMin) / ac.vHeight) * ac.outHeight;
             if( !use16BitData ) {
               xyb[0] = (unsigned char)outX;
               xyb[1] = (unsigned char)outY;
@@ -660,7 +661,7 @@ int main(int argc, char* argv[] )
                 auto ret = write( fd, xyb, sizeof(xyb) );
               }
             }
-            continue;  // head back up the loop
+            //continue;  // head back up the loop
           } // if( hit ) 
         } // if( solveRet ) 
 
@@ -701,7 +702,6 @@ int main(int argc, char* argv[] )
 
           if( buttons & devastar::BUTTON_A ) {
             if( lastButton != devastar::BUTTON_A ) {
-              std::cout << "TRIGGER: " << u << "," << v << std::endl;
               lastButton = devastar::BUTTON_A;
               if( solveRet ) {
                 // u and v were calcuatled, pass on to the calibrator
@@ -710,19 +710,16 @@ int main(int argc, char* argv[] )
             } 
           } else if( buttons & devastar::BUTTON_B ) {
             if( lastButton != devastar::BUTTON_B ) {
-              std::cout << "Button B" << std::endl;
               lastButton = devastar::BUTTON_B;
               aimCalibrator.restartCalibration();
             } 
           } else if( buttons & devastar::BUTTON_C ) {
             if( lastButton != devastar::BUTTON_C ) {
-              std::cout << "Button C" << std::endl;
               lastButton = devastar::BUTTON_C;
               aimCalibrator.cancelCalibration();
             } 
           } else if( buttons & devastar::BUTTON_D ) {
             if( lastButton != devastar::BUTTON_D ) {
-              std::cout << "Button D" << std::endl;
               lastButton = devastar::BUTTON_D;
               aimCalibrator.saveCalibration();
             } 
@@ -730,6 +727,11 @@ int main(int argc, char* argv[] )
             lastButton = devastar::BUTTON_NONE;
           }
         } // if( doCalibration ) {
+
+
+        if( hit ) {
+          continue;
+        }
 
       } // if( centerCount == 4 ) 
 
