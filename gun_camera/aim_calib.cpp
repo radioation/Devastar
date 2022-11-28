@@ -9,53 +9,19 @@ namespace fs = std::filesystem;
 
 using namespace devastar;
 
-AimCalibration::AimCalibration(const float& ir_width,
-    const float& ir_height,
-    const float &out_x_min,
-    const float &out_y_min,
-    const float &out_x_max,
-    const float &out_y_max
-    ) :
-  irWidth(  ir_width ),
-  irHeight( ir_height ),
-  outXMin( out_x_min ),
-  outYMin( out_y_min ),
-  outXMax( out_x_max ),
-  outYMax( out_y_max ),
-  outWidth( outXMax-outXMin ),
-  outHeight( outYMax-outYMin ),
+AimCalibration::AimCalibration(const Configuration& config) :
   uMin( 0.0f ),
-  vMin( 0.0f ),
-  uMax( irWidth ),
-  vMax( irHeight )
+  vMin( 0.0f )
 {
+  uMax = config.irWidth;
+  vMax = config.irHeight;
 }
 
 
 
-bool AimCalibration::readConfig( const std::string& configPath ) {
-  if( fs::exists( configPath ) ) {
-    cv::FileStorage fileStorage(configPath, cv::FileStorage::READ);
-    if(!fileStorage["ir_width"].empty() ) {
-      fileStorage["ir_width"] >> irWidth;
-    }
-    if(!fileStorage["ir_height"].empty() ) {
-      fileStorage["ir_height"] >> irHeight;
-    }
-    if(!fileStorage["output_x_min"].empty() ) {
-      fileStorage["output_x_min"] >> outXMin;
-    }
-    if(!fileStorage["output_y_min"].empty() ) {
-      fileStorage["output_y_min"] >> outYMin;
-    }
-    if(!fileStorage["output_x_max"].empty() ) {
-      fileStorage["output_x_max"] >> outXMax;
-    }
-    if(!fileStorage["output_y_max"].empty() ) {
-      fileStorage["output_y_max"] >> outYMax;
-    }
-    outWidth = outXMax - outXMin;
-    outHeight = outYMax - outYMin;
+bool AimCalibration::readCalibrationFile( const std::string& calibrationPath ) {
+  if( fs::exists( calibrationPath ) ) {
+    cv::FileStorage fileStorage(calibrationPath, cv::FileStorage::READ);
 
     if(!fileStorage["u_min"].empty() ) {
       fileStorage["u_min"] >> uMin;
@@ -78,15 +44,8 @@ bool AimCalibration::readConfig( const std::string& configPath ) {
   return true;
 }
 
-bool AimCalibration::writeConfig( const std::string& configPath ){
-  cv::FileStorage fileStorage(configPath, cv::FileStorage::APPEND);
-  fileStorage << "ir_width" << irWidth;
-  fileStorage << "ir_height" << irHeight;
-
-  fileStorage << "output_x_min" << outXMin;
-  fileStorage << "output_y_min" << outYMin;
-  fileStorage << "output_x_max" << outXMax;
-  fileStorage << "output_y_max" << outYMax;
+bool AimCalibration::writeCalibrationFile( const std::string& calibrationPath ){
+  cv::FileStorage fileStorage(calibrationPath, cv::FileStorage::WRITE);
 
   fileStorage << "u_min" << uMin;
   fileStorage << "v_min" << vMin;
@@ -98,12 +57,12 @@ bool AimCalibration::writeConfig( const std::string& configPath ){
 
 AimCalibrator::AimCalibrator(AimCalibration &aimCalibration, 
                               unsigned int maxSamples, 
-                              const std::string& configPath) :
+                              const std::string& calibrationPath) :
   m_aimCalibration(aimCalibration),
   m_aimCalibrationOrig(aimCalibration), 
   m_mode( AIM_CALIBRATE_UPPER_LEFT ),
   m_maxSamples(maxSamples),
-  m_configPath(configPath) {
+  m_calibrationPath(calibrationPath) {
   }
 
 AimCalibrator::~AimCalibrator() {
@@ -151,7 +110,7 @@ void AimCalibrator::cancelCalibration() {
 }
 
 void AimCalibrator::saveCalibration() {
-  m_aimCalibration.writeConfig( m_configPath );
+  m_aimCalibration.writeCalibrationFile( m_calibrationPath );
   m_aimCalibrationOrig =  m_aimCalibration;
   restartCalibration();
 }

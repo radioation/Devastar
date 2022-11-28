@@ -5,6 +5,8 @@
 #include <string>
 #include <opencv2/opencv.hpp>
 
+#include "config.h"
+
 namespace devastar {
 
   enum AimCalibrateMode {
@@ -19,27 +21,8 @@ namespace devastar {
   struct AimCalibration 
   {
 
-    AimCalibration() {};
-    AimCalibration(const float& ir_width, 
-        const float& ir_height, 
-        const float &out_x_min,
-        const float &out_y_min,
-        const float &out_x_max,
-        const float &out_y_max
-        );
+    AimCalibration(const Configuration& config );
     ~AimCalibration() {};
-
-    // IR LED model width/height.
-    float irWidth; 
-    float irHeight; 
-
-    // X/Y values to receiver.
-    float outXMin;
-    float outYMin;
-    float outXMax;
-    float outYMax;
-    float outWidth;
-    float outHeight;
 
     // U/V bounds for screen in camera space.
     float uMin;
@@ -49,8 +32,8 @@ namespace devastar {
     float uWidth;
     float vHeight;
 
-    bool readConfig( const std::string& configPath );
-    bool writeConfig( const std::string& configPath );
+    bool readCalibrationFile( const std::string& calibPath );
+    bool writeCalibrationFile( const std::string& calibPath );
   };
 
   class AimCalibrator 
@@ -81,7 +64,7 @@ namespace devastar {
       std::vector<float> m_vPointBuffer;
       AimCalibrateMode m_mode;
       unsigned int m_maxSamples;
-      std::string m_configPath;
+      std::string m_calibrationPath;
 
       float average( const std::vector<float>& vec );
   };

@@ -159,17 +159,7 @@ int main(int argc, char* argv[] )
   // Sega Light Phaser
   // X range is 24 to 247 : send 0 through 223
   // Y range is 15 to 193 : send 0 through 178
-  devastar::AimCalibration ac (
-      // IR spacing
-      510.0f, //  irWidth 
-      260.0f, //  irHeight
-      // X/Y Values to receiver
-      73.0f,  //  outXMin 
-      30.0f,  //  outYMin  
-      269.0f, //  outXMax 
-      250.0f  //  outYMax
-      ); 
-
+  devastar::AimCalibration ac(conf);
   if( fs::exists( gunCalibrationPath ) ) {
     ac.readCalibrationFile( gunCalibrationPath );
   }
@@ -264,9 +254,9 @@ int main(int argc, char* argv[] )
   // Setup object points
   std::vector<cv::Point3f> worldPoints;
   worldPoints.push_back(cv::Point3f(0, 0, 0));
-  worldPoints.push_back(cv::Point3f(ac.irWidth, 0, 0));
-  worldPoints.push_back(cv::Point3f(0, ac.irHeight, 0));
-  worldPoints.push_back(cv::Point3f(ac.irWidth, ac.irHeight, 0));
+  worldPoints.push_back(cv::Point3f(conf.irWidth, 0, 0));
+  worldPoints.push_back(cv::Point3f(0, conf.irHeight, 0));
+  worldPoints.push_back(cv::Point3f(conf.irWidth, conf.irHeight, 0));
   // setup rectangle for intersection test
   cv::Vec3f S1, S2, P0;
   P0[0] = worldPoints[0].x;
@@ -593,7 +583,7 @@ int main(int argc, char* argv[] )
           startTime = std::chrono::steady_clock::now();
 #endif
           //hit = intersectRect(Ray0, D, P0, S1, S2, irWidth, irHeight, u, v);
-          computeUV(Ray0, D, P0, S1, S2, ac.irWidth, ac.irHeight, u, v);
+          computeUV(Ray0, D, P0, S1, S2, conf.irWidth, conf.irHeight, u, v);
 #ifdef SHOW_TIME
           endTime = std::chrono::steady_clock::now();
           std::cout << "ELAPSED TIME>> intersectRect(): " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
@@ -611,8 +601,8 @@ int main(int argc, char* argv[] )
           std::cout << "P0: " << P0 << std::endl;
           std::cout << "S1: " << S1 << std::endl;
           std::cout << "S2: " << S2 << std::endl;
-          std::cout << "irWidth: " << ac.irWidth  << std::endl;
-          std::cout << "irHeight: " << ac.irHeight << std::endl;
+          std::cout << "irWidth: " << conf.irWidth  << std::endl;
+          std::cout << "irHeight: " << conf.irHeight << std::endl;
           std::cout << "U: " << u << " V: " << v << " hit: " << hit << std::endl;
 #endif
 
@@ -625,15 +615,15 @@ int main(int argc, char* argv[] )
           if( hit ) {
 #ifdef SHOW_IMAGE
             cv::Point2f pt;
-            pt.x = (u/ac.irWidth) * 640.0f;
-            pt.y = (v/ac.irHeight) * 480.0f;
+            pt.x = (u/conf.irWidth) * 640.0f;
+            pt.y = (v/conf.irHeight) * 480.0f;
             cv::circle( displayCopy, pt, 5.0f, cv::Scalar(0,255,255), 3.0f);
             cv::imshow("points", displayCopy );
             cv::waitKey(1);
 #endif
 	    // arduino has the min/max values  We just need the X/Y range calculated from the percentage
-            auto outX = ( (u-ac.uMin) / ac.uWidth) * ac.outWidth;
-            auto outY = ( (v-ac.vMin) / ac.vHeight) * ac.outHeight;
+            auto outX = ( (u-ac.uMin) / ac.uWidth) * conf.outWidth;
+            auto outY = ( (v-ac.vMin) / ac.vHeight) * conf.outHeight;
             if( !use16BitData ) {
               xyb[0] = (unsigned char)outX;
               xyb[1] = (unsigned char)outY;
