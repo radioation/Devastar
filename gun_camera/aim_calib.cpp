@@ -15,6 +15,8 @@ AimCalibration::AimCalibration(const Configuration& config) :
 {
   uMax = config.irWidth;
   vMax = config.irHeight;
+  uWidth = uMax - uMin;
+  vHeight = vMax - vMin;
 }
 
 
