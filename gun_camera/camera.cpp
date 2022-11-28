@@ -22,7 +22,6 @@
 
 #define BUFFER_SIZE 64
 #define BAUDRATE B38400            
-#define DEFAULT_SERIAL_DEVICE "/dev/ttyACM0"
 
 #define SHOW_IMAGE
 //#define SHOW_CALC
@@ -34,6 +33,7 @@
 namespace fs = std::filesystem;
 
 
+#include "config.h"
 #include "aim_calib.h"
 #include "devastar_common.h"
 
@@ -145,10 +145,9 @@ int main(int argc, char* argv[] )
   }
   // check configuration path
   fs::path configPath("./config.yml");
-
-  std::string serialDevice = DEFAULT_SERIAL_DEVICE;
-  double minBlobSize = 6.0;
-  double maxBlobSize = 250.0;
+  fs::path gunCalibrationPath("./aim_calib.yml");
+ 
+  devastar::Configuration conf( configPath.string() ); 
 
   // from obvservation with delay4Cycles() on arduino
   // Menacer
@@ -171,30 +170,21 @@ int main(int argc, char* argv[] )
       250.0f  //  outYMax
       ); 
 
-  if( fs::exists( configPath ) ) {
-    ac.readConfig( configPath );
-    cv::FileStorage fileStorage(configPath, cv::FileStorage::READ);
-    if(!fileStorage["serial_device"].empty() ) {
-      fileStorage["serial_device"] >> serialDevice;
-    }
-    if(!fileStorage["min_blob_size"].empty() ) {
-      fileStorage["min_blob_size"] >> minBlobSize;
-    }
-    if(!fileStorage["max_blob_size"].empty() ) {
-      fileStorage["max_blob_size"] >> maxBlobSize;
-    }
+  if( fs::exists( gunCalibrationPath ) ) {
+    ac.readCalibrationFile( gunCalibrationPath );
   }
   devastar::AimCalibrator aimCalibrator(ac, 5, configPath.string() );
 
-  std::cout << "Using: serial device: " << serialDevice << "\n";
-  std::cout << " ir_width: " << ac.irWidth << "\n";
-  std::cout << " ir_height: " << ac.irHeight << "\n";
-  std::cout << " output_x_min: " << ac.outXMin << "\n";
-  std::cout << " output_y_min: " << ac.outYMin << "\n";
-  std::cout << " output_x_max: " << ac.outXMax << "\n";
-  std::cout << " output_y_max: " << ac.outYMax << "\n";
-  std::cout << "    out width: " << ac.outWidth << "\n";
-  std::cout << "   out height: " << ac.outHeight << "\n";
+  std::cout << "Using: serial device: " << conf.serialDevice << "\n";
+  std::cout << "     ir_width: " << conf.irWidth << "\n";
+  std::cout << "    ir_height: " << conf.irHeight << "\n";
+  std::cout << "    out width: " << conf.outWidth << "\n";
+  std::cout << "   out height: " << conf.outHeight << "\n";
+  std::cout << " output_x_min: " << conf.outXMin << "\n";
+  std::cout << " output_y_min: " << conf.outYMin << "\n";
+  std::cout << "min_blob_size: " << conf.minBlobSize << "\n";
+  std::cout << "max_blob_zien: " << conf.maxBlobSize << "\n";
+
   std::cout << "        u_min: " << ac.uMin << "\n";
   std::cout << "        v_min: " << ac.vMin << "\n";
   std::cout << "        u_max: " << ac.uMax << "\n";
@@ -202,7 +192,7 @@ int main(int argc, char* argv[] )
   std::cout << "    U/V width: " << ac.uWidth << "\n";
   std::cout << "   U/V height: " << ac.vHeight << "\n";
 
-  bool use16BitData = ac.outWidth > 255 || ac.outHeight > 255;
+  bool use16BitData = conf.outWidth > 255.0f || conf.outHeight > 255.0f;
   std::cout << " use16BitData: " << use16BitData << "\n";
 
   // check calibration path
@@ -302,10 +292,10 @@ int main(int argc, char* argv[] )
   struct termios serial;
   char buffer[BUFFER_SIZE];
   bool serialPortReady = true;
-  int fd = open( serialDevice.c_str(), O_RDWR | O_NOCTTY | O_NDELAY);
+  int fd = open( conf.serialDevice.c_str(), O_RDWR | O_NOCTTY | O_NDELAY);
   if( fd < 0 ) {
     std::cerr << "Unable to open serial" << std::endl;
-    perror( serialDevice.c_str() );
+    perror( conf.serialDevice.c_str() );
     serialPortReady = false;
   }
   auto result = tcgetattr( fd, & serial );
@@ -442,7 +432,7 @@ int main(int argc, char* argv[] )
       int centerCount = 0;
       for( size_t i = 0; i < contours.size(); ++i ) {
         // using size cutoff to find 'good' candidates.  Look at other features like circularity, position, etc.
-        if( moments[i].m00 > minBlobSize && moments[i].m00 < maxBlobSize ) {
+        if( moments[i].m00 > conf.minBlobSize && moments[i].m00 < conf.maxBlobSize ) {
 
           if( centerCount < 4 ) {
             //centers[centerCount] =  cv::Point2f( static_cast<float> ( moments[i].m10 / ( moments[i].m00 + 1e-5)), static_cast<float> ( moments[i].m01 / ( moments[i].m00 + 1e-5)) );
