@@ -21,7 +21,13 @@ namespace devastar {
   struct AimCalibration 
   {
 
-    AimCalibration(const Configuration& config );
+    AimCalibration();
+    AimCalibration(const float& u_min, 
+                  const float& v_min,
+                  const float& u_max,
+                  const float& v_max);
+                  
+                 
     ~AimCalibration() {};
 
     // U/V bounds for screen in camera space.

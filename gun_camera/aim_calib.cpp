@@ -9,14 +9,28 @@ namespace fs = std::filesystem;
 
 using namespace devastar;
 
-AimCalibration::AimCalibration(const Configuration& config) :
+AimCalibration::AimCalibration() :
   uMin( 0.0f ),
-  vMin( 0.0f )
+  vMin( 0.0f ),
+  uMax( 0.0f ),
+  vMax( 0.0f ),
+  uWidth( uMax - uMin),
+  vHeight( vMax - vMin)
 {
-  uMax = config.irWidth;
-  vMax = config.irHeight;
-  uWidth = uMax - uMin;
-  vHeight = vMax - vMin;
+}
+
+
+AimCalibration::AimCalibration(const float& u_min, 
+                  const float& v_min,
+                  const float& u_max,
+                  const float& v_max ) :
+  uMin( u_min ),
+  vMin( v_min ),
+  uMax( u_max ),
+  vMax( v_max ),
+  uWidth( uMax - uMin),
+  vHeight( vMax - vMin)
+{
 }
 
 
