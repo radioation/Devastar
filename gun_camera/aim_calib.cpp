@@ -85,7 +85,7 @@ AimCalibrator::~AimCalibrator() {
 }
 
 
-size_t AimCalibrator::appendSample(const float& u, const float &v) {
+size_t AimCalibrator::appendSampleAndCalculate(const float& u, const float &v) {
   m_uPointBuffer.push_back(u);
   m_vPointBuffer.push_back(v);
 
@@ -112,7 +112,7 @@ size_t AimCalibrator::appendSample(const float& u, const float &v) {
   return m_uPointBuffer.size();
 }
 
-AimCalibrateMode AimCalibrator::restartCalibration() {
+AimCalibrateMode AimCalibrator::resetCalibration() {
   m_uPointBuffer.clear();
   m_vPointBuffer.clear();
   m_mode = AIM_CALIBRATE_UPPER_LEFT;
@@ -121,14 +121,14 @@ AimCalibrateMode AimCalibrator::restartCalibration() {
 
 
 void AimCalibrator::cancelCalibration() {
-  restartCalibration();
+  resetCalibration();
   m_aimCalibration = m_aimCalibrationOrig;
 }
 
 void AimCalibrator::saveCalibration() {
   m_aimCalibration.writeCalibrationFile( m_calibrationPath );
   m_aimCalibrationOrig =  m_aimCalibration;
-  restartCalibration();
+  resetCalibration();
 }
 
 float AimCalibrator::average( const std::vector<float>& vec ) {

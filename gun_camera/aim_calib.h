@@ -10,9 +10,9 @@
 namespace devastar {
 
   enum AimCalibrateMode {
-    AIM_CALIBRATE_START,
     AIM_CALIBRATE_UPPER_LEFT,
     AIM_CALIBRATE_LOWER_RIGHT,
+    AIM_CALIBRATE_START,
     AIM_CALIBRATE_CALIBRATED,
     AIM_CALIBRATE_SAVED
   };
@@ -50,13 +50,13 @@ namespace devastar {
                     const std::string& configPath );
       ~AimCalibrator();
 
-      size_t getCurrentSampleCount() { return m_uPointBuffer.size(); };
       AimCalibrateMode getMode() { return m_mode; };
       size_t getMaxSamples() { return m_maxSamples; };
+      size_t getCurrentSampleCount() { return m_uPointBuffer.size(); };
 
-      size_t appendSample( const float&u, const float& v );
+      size_t appendSampleAndCalculate( const float&u, const float& v );
 
-      AimCalibrateMode restartCalibration();
+      AimCalibrateMode resetCalibration();
       void cancelCalibration();
       void saveCalibration();
 
