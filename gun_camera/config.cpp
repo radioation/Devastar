@@ -9,19 +9,20 @@ using namespace devastar;
 Configuration::Configuration(const std::string& configFile) 
   : 
     serialDevice( DEFAULT_SERIAL_DEVICE ),
-    irWidth(510.0f),
-    irHeight(510.0f),
-    outWidth(196.0f),
-    outHeight(220),
-    outXMin(73),
-    outYMin(30),
-    minBlobSize(6.0),
-    maxBlobSize(250.0)
+    irWidth(600.0f),
+    irHeight(600.0f),
+    outWidth(320.0f),
+    outHeight(220.0f),
+    outXMin(10.0f),
+    outYMin(5.0f),
+    minBlobSize(3.0),
+    maxBlobSize(275.0)
 {
-  fs::path configPath("./config.yml");
+  fs::path configPath(configFile);
 
   if( fs::exists( configPath ) ) {
     cv::FileStorage fileStorage(configPath, cv::FileStorage::READ);
+
     if(!fileStorage["serial_device"].empty() ) {
       fileStorage["serial_device"] >> serialDevice;
     }
@@ -40,10 +41,10 @@ Configuration::Configuration(const std::string& configFile)
     }
 
     if(!fileStorage["output_x_min"].empty() ) {
-      fileStorage["output_y_min"] >> outXMin;
+      fileStorage["output_x_min"] >> outXMin;
     }
-    if(!fileStorage["output_height"].empty() ) {
-      fileStorage["output_height"] >> outYMin;
+    if(!fileStorage["output_y_min"].empty() ) {
+      fileStorage["output_y_min"] >> outYMin;
     }
 
     if(!fileStorage["min_blob_size"].empty() ) {

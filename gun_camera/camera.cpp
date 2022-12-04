@@ -165,11 +165,11 @@ int main(int argc, char* argv[] )
   }
   devastar::AimCalibrator aimCalibrator(ac, 5, configPath.string() );
 
-  std::cout << "Using: serial device: " << conf.serialDevice << "\n";
+  std::cout << "Using: serial_device: " << conf.serialDevice << "\n";
   std::cout << "     ir_width: " << conf.irWidth << "\n";
   std::cout << "    ir_height: " << conf.irHeight << "\n";
-  std::cout << "    out width: " << conf.outWidth << "\n";
-  std::cout << "   out height: " << conf.outHeight << "\n";
+  std::cout << " output_width: " << conf.outWidth << "\n";
+  std::cout << "output_height: " << conf.outHeight << "\n";
   std::cout << " output_x_min: " << conf.outXMin << "\n";
   std::cout << " output_y_min: " << conf.outYMin << "\n";
   std::cout << "min_blob_size: " << conf.minBlobSize << "\n";
