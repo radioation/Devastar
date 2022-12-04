@@ -42,6 +42,14 @@ namespace devastar {
     bool writeCalibrationFile( const std::string& calibPath );
   };
 
+  struct UVPt 
+  {
+    UVPt() : u(0.0f), v(0.0f) {};
+    UVPt(const float&U, const float&V) : u(U), v(V) {};
+    float u;
+    float v;
+  };
+
   class AimCalibrator 
   {
     public:
@@ -52,9 +60,9 @@ namespace devastar {
 
       AimCalibrateMode getMode() { return m_mode; };
       size_t getMaxSamples() { return m_maxSamples; };
-      size_t getCurrentSampleCount() { return m_uPointBuffer.size(); };
+      size_t getCurrentSampleCount() { return m_pointBuffer.size(); };
 
-      size_t appendSampleAndCalculate( const float&u, const float& v );
+      size_t appendSample( const float&u, const float& v );
 
       AimCalibrateMode resetCalibration();
       void cancelCalibration();
@@ -66,13 +74,12 @@ namespace devastar {
       AimCalibrator();
       AimCalibration &m_aimCalibration;
       AimCalibration m_aimCalibrationOrig;
-      std::vector<float> m_uPointBuffer;
-      std::vector<float> m_vPointBuffer;
+      std::vector<UVPt> m_pointBuffer;
       AimCalibrateMode m_mode;
       unsigned int m_maxSamples;
       std::string m_calibrationPath;
 
-      float average( const std::vector<float>& vec );
+      UVPt average( const std::vector<UVPt>& vec );
   };
 
 }

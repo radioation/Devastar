@@ -85,40 +85,39 @@ AimCalibrator::~AimCalibrator() {
 }
 
 
-size_t AimCalibrator::appendSampleAndCalculate(const float& u, const float &v) {
-  m_uPointBuffer.push_back(u);
-  m_vPointBuffer.push_back(v);
+size_t AimCalibrator::appendSample(const float& u, const float &v) {
+  UVPt pt( u, v );
+  m_pointBuffer.push_back(pt);
 
-  if( m_uPointBuffer.size() >= m_maxSamples ) {
+  if( m_pointBuffer.size() >= m_maxSamples ) {
     if( m_mode == AIM_CALIBRATE_UPPER_LEFT ) {
       // find avg u and avg v, set to min
-      m_aimCalibration.uMin = average( m_uPointBuffer );
-      m_aimCalibration.vMin = average( m_vPointBuffer );
-      m_uPointBuffer.clear();
-      m_vPointBuffer.clear();
-
+      auto avg = average( m_pointBuffer );
+      m_pointBuffer.clear();
+      m_aimCalibration.uMin = avg.u;
+      m_aimCalibration.vMin = avg.v;
       m_mode = AIM_CALIBRATE_LOWER_RIGHT;
     }else if( m_mode == AIM_CALIBRATE_LOWER_RIGHT ) {
       // find avg u and avg y, set to max and width
-      m_aimCalibration.uMax = average( m_uPointBuffer );
-      m_aimCalibration.vMax = average( m_vPointBuffer );
-      m_aimCalibration.uWidth = average( m_uPointBuffer ) - m_aimCalibration.uMin;
-      m_aimCalibration.vHeight = average( m_vPointBuffer ) - m_aimCalibration.vMin;
-      m_uPointBuffer.clear();
-      m_vPointBuffer.clear();
+      auto avg = average( m_pointBuffer );
+      m_pointBuffer.clear();
+      m_aimCalibration.uMax = avg.u;
+      m_aimCalibration.vMax = avg.v;
+      m_aimCalibration.uWidth = m_aimCalibration.uMax - m_aimCalibration.uMin;
+      m_aimCalibration.vHeight = m_aimCalibration.vMax - m_aimCalibration.vMin;
       m_mode = AIM_CALIBRATE_CALIBRATED;
     }
   }
-  return m_uPointBuffer.size();
+  return m_pointBuffer.size();
 }
 
+
+
 AimCalibrateMode AimCalibrator::resetCalibration() {
-  m_uPointBuffer.clear();
-  m_vPointBuffer.clear();
+  m_pointBuffer.clear();
   m_mode = AIM_CALIBRATE_UPPER_LEFT;
   return m_mode;
 }
-
 
 void AimCalibrator::cancelCalibration() {
   resetCalibration();
@@ -131,10 +130,20 @@ void AimCalibrator::saveCalibration() {
   resetCalibration();
 }
 
-float AimCalibrator::average( const std::vector<float>& vec ) {
+UVPt AimCalibrator::average( const std::vector<UVPt>& vec ) {
+  UVPt ret;
   if( vec.empty() ) {
-    return 0.0f;
+    return ret;
   }
-  return std::reduce( vec.begin(), vec.end() ) / (float)vec.size();
+  float u = 0.0f;
+  float v = 0.0f;
+  for( const auto& iter: vec ) {
+    u += iter.u;
+    v += iter.v;
+  }
+
+  ret.u = u/(float)vec.size();
+  ret.v = v/(float)vec.size();
+  return ret;
 }
 

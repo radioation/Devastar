@@ -96,22 +96,97 @@ int main(int argc, char* argv[] )
   devastar::AimCalibrator aimCalibrator(ac, maxSamples, configfile );
 
   // default mode is AIM_CALIBRATE_UPPER_LEFT
+  std::cout  << "Start State " << std::endl;
 	CHECK_EQUAL_INT( aimCalibrator.getMode(), devastar::AIM_CALIBRATE_UPPER_LEFT, "Check Calibrator Mode" );
   // max should be 5
 	CHECK_EQUAL_INT( aimCalibrator.getMaxSamples(), maxSamples, "Check Max Samples");
 
   // current should be zero the first time
-	CHECK_EQUAL_INT( aimCalibrator.getCurrentSampleCount(), 0, "Check starging sample count");
+	CHECK_EQUAL_INT( aimCalibrator.getCurrentSampleCount(), 0, "Check starting sample count");
 
   // add more than max
-  float u = 100.0f;
-  float v = 100.0f;
-  for( int i=0; i > maxSamples +1; ++i ) {
-    aimCalibrator.appendSampleAndCalculate(u,v);
-  }
+  float u = -100.0f;
+  float v = -100.0f;
+  size_t count = aimCalibrator.appendSample(u,v);
+	CHECK_EQUAL_INT( count, 1, "Check return val after append");
+	CHECK_EQUAL_INT( aimCalibrator.getCurrentSampleCount(), 1, "Check starting sample count after append");
+	CHECK_EQUAL_INT( aimCalibrator.getMode(), devastar::AIM_CALIBRATE_UPPER_LEFT, "Check Calibrator Mode is still UPPER LEFT" );
+  u = -110.0f;
+  v = -110.0f;
+  count = aimCalibrator.appendSample(u,v);
+	CHECK_EQUAL_INT( count, 2, "Check return val after append");
+	CHECK_EQUAL_INT( aimCalibrator.getCurrentSampleCount(), 2, "Check starting sample count after append");
+	CHECK_EQUAL_INT( aimCalibrator.getMode(), devastar::AIM_CALIBRATE_UPPER_LEFT, "Check Calibrator Mode is still UPPER LEFT" );
+  u = -105.0f;
+  v = -105.0f;
+  count = aimCalibrator.appendSample(u,v);
+	CHECK_EQUAL_INT( count, 3, "Check return val after append");
+	CHECK_EQUAL_INT( aimCalibrator.getCurrentSampleCount(), 3, "Check starting sample count after append");
+	CHECK_EQUAL_INT( aimCalibrator.getMode(), devastar::AIM_CALIBRATE_UPPER_LEFT, "Check Calibrator Mode is still UPPER LEFT" );
+  u = -102.5f;
+  v = -102.5f;
+  count = aimCalibrator.appendSample(u,v);
+	CHECK_EQUAL_INT( count, 4, "Check return val after append");
+	CHECK_EQUAL_INT( aimCalibrator.getCurrentSampleCount(), 4, "Check starting sample count after append");
+	CHECK_EQUAL_INT( aimCalibrator.getMode(), devastar::AIM_CALIBRATE_UPPER_LEFT, "Check Calibrator Mode is still UPPER LEFT" );
+  u = -107.5f;
+  v = -107.5f;
+  count = aimCalibrator.appendSample(u,v);  // will change state
+	CHECK_EQUAL_REAL( ac.uMin, -105.0f, "ac.uMin", 0.00001);
+	CHECK_EQUAL_REAL( ac.vMin, -105.0f, "ac.vMin", 0.00001);
+	CHECK_EQUAL_INT( aimCalibrator.getCurrentSampleCount(), 0, "Check starting sample count after append");
+
+
+  std::cout  << "New State " << std::endl;
+	CHECK_EQUAL_INT( aimCalibrator.getMode(), devastar::AIM_CALIBRATE_LOWER_RIGHT, "Check Calibrator Mode is now LOWER RIGHT" );
+  u = 200.0f;
+  v = 150.0f;
+  count = aimCalibrator.appendSample(u,v);
+	CHECK_EQUAL_INT( count, 1, "Check return val after append");
+	CHECK_EQUAL_INT( aimCalibrator.getCurrentSampleCount(), 1, "Check starting sample count after append");
+	CHECK_EQUAL_INT( aimCalibrator.getMode(), devastar::AIM_CALIBRATE_LOWER_RIGHT, "Check Calibrator Mode is still LOWER RIGHT " );
+  u = 210.0f;
+  v = 160.0f;
+  count = aimCalibrator.appendSample(u,v);
+	CHECK_EQUAL_INT( count, 2, "Check return val after append");
+	CHECK_EQUAL_INT( aimCalibrator.getCurrentSampleCount(), 2, "Check starting sample count after append");
+	CHECK_EQUAL_INT( aimCalibrator.getMode(), devastar::AIM_CALIBRATE_LOWER_RIGHT, "Check Calibrator Mode is still LOWER RIGHT " );
+
+  u = 190.0f;
+  v = 140.0f;
+  count = aimCalibrator.appendSample(u,v);
+	CHECK_EQUAL_INT( count, 3, "Check return val after append");
+	CHECK_EQUAL_INT( aimCalibrator.getCurrentSampleCount(), 3, "Check starting sample count after append");
+	CHECK_EQUAL_INT( aimCalibrator.getMode(), devastar::AIM_CALIBRATE_LOWER_RIGHT, "Check Calibrator Mode is still LOWER RIGHT " );
+  u = 205.0f;
+  v = 155.0f;
+  count = aimCalibrator.appendSample(u,v);
+	CHECK_EQUAL_INT( count, 4, "Check return val after append");
+	CHECK_EQUAL_INT( aimCalibrator.getCurrentSampleCount(), 4, "Check starting sample count after append");
+	CHECK_EQUAL_INT( aimCalibrator.getMode(), devastar::AIM_CALIBRATE_LOWER_RIGHT, "Check Calibrator Mode is still LOWER RIGHT " );
+  u = 195.0f;
+  v = 145.0f;
+  count = aimCalibrator.appendSample(u,v);
+	CHECK_EQUAL_INT( count, 0, "Check return val after append");
+	CHECK_EQUAL_INT( aimCalibrator.getCurrentSampleCount(), 0, "Check starting sample count after append");
+	CHECK_EQUAL_INT( aimCalibrator.getMode(), devastar::AIM_CALIBRATE_CALIBRATED, "Check Calibrator Mode is now CALIBRATED " );
+	CHECK_EQUAL_REAL( ac.uMax, 200.0f, "ac.uMax", 0.00001);
+	CHECK_EQUAL_REAL( ac.vMax, 150.0f, "ac.vMax", 0.00001);
+	CHECK_EQUAL_REAL( ac.uWidth, 305.0f, "ac.uWidth", 0.00001);
+	CHECK_EQUAL_REAL( ac.vHeight, 255.0f, "ac.vHeight", 0.00001);
+
+  // reset willl go back to the original calib which was default 0 everywhere
+  std::cout << "Reset" << std::endl; 
+  aimCalibrator.cancelCalibration();
+	CHECK_EQUAL_REAL( ac.uMin, 0.0f, "ac.uMin", 0.00001);
+	CHECK_EQUAL_REAL( ac.vMin, 0.0f, "ac.vMin", 0.00001);
+	CHECK_EQUAL_REAL( ac.uMax, 0.0f, "ac.uMax", 0.00001);
+	CHECK_EQUAL_REAL( ac.vMax, 0.0f, "ac.vMax", 0.00001);
+	CHECK_EQUAL_REAL( ac.uWidth, 0.0f, "ac.uWidth", 0.00001);
+	CHECK_EQUAL_REAL( ac.vHeight, 0.0f, "ac.vHeight", 0.00001);
 
 /*
-  aimCalibrator.startCalibration();
+  aimCalibrator.resetCalibration();
   aimCalibrator.cancelCalibration();
   aimCalibrator.saveCalibration();
   */
