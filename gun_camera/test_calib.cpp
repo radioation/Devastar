@@ -44,12 +44,25 @@ int main(int argc, char* argv[] )
 	CHECK_EQUAL_REAL( ac0.vMax, ac1.vMax, "write read vMax", 0.00001);
 	CHECK_EQUAL_REAL( ac0.uWidth, ac1.uWidth, "write read uWidth", 0.00001);
 	CHECK_EQUAL_REAL( ac0.vHeight, ac1.vHeight, "write read vHeight", 0.00001);
-  
+  ac1.uMin = 0.0f;
+  ac1.vMin = 0.0f;
+  ac1.uMax = 500.0f;
+  ac1.vMax = 272.0f;
+  ac1.uWidth = ac1.uMax - ac1.uMin;
+  ac1.vHeight = ac1.vMax - ac1.vMin;
 
-  /*
-  devastar::AimCalibration ac( config );
+  ac1.writeCalibrationFile( testOutfile1 );
+  ac0.readCalibrationFile( testOutfile1 );
+	CHECK_EQUAL_REAL( ac0.uMin, ac1.uMin, "write read 2 uMin", 0.00001);
+	CHECK_EQUAL_REAL( ac0.vMin, ac1.vMin, "write read 2 vMin", 0.00001);
+	CHECK_EQUAL_REAL( ac0.uMax, ac1.uMax, "write read 2 uMax", 0.00001);
+	CHECK_EQUAL_REAL( ac0.vMax, ac1.vMax, "write read 2 vMax", 0.00001);
+	CHECK_EQUAL_REAL( ac0.uWidth, ac1.uWidth, "write read 2 uWidth", 0.00001);
+	CHECK_EQUAL_REAL( ac0.vHeight, ac1.vHeight, "write read 2 vHeight", 0.00001);
 
 
+/*
+ devastar::AimCalibration ac( config );
 
 
   devastar::AimCalibrator aimCalibrator(ac, 5, configPath.string() );
