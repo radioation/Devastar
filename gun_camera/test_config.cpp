@@ -2,7 +2,7 @@
 #include <fstream>
 
 #include "test.h"
-#include "aim_calib.h"
+#include "config.h"
 #include "devastar_common.h"
 
 
