@@ -5,7 +5,6 @@
 #include <string>
 #include <opencv2/opencv.hpp>
 
-#include "config.h"
 
 namespace devastar {
 
@@ -55,7 +54,7 @@ namespace devastar {
     public:
       AimCalibrator(devastar::AimCalibration & aimCalibration, 
                     unsigned int maxSamples,
-                    const std::string& configPath );
+                    const std::string& calibPath );
       ~AimCalibrator();
 
       AimCalibrateMode getMode() { return m_mode; };

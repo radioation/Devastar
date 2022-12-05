@@ -92,8 +92,9 @@ int main(int argc, char* argv[] )
 
  
   int maxSamples = 5;
+  std::string testOutfile2 = "ac_calib.yml";
   devastar::AimCalibration ac;
-  devastar::AimCalibrator aimCalibrator(ac, maxSamples, configfile );
+  devastar::AimCalibrator aimCalibrator(ac, maxSamples, testOutfile2);
 
   // default mode is AIM_CALIBRATE_UPPER_LEFT
   std::cout  << "Start State " << std::endl;
@@ -178,16 +179,57 @@ int main(int argc, char* argv[] )
   // reset willl go back to the original calib which was default 0 everywhere
   std::cout << "Reset" << std::endl; 
   aimCalibrator.cancelCalibration();
-	CHECK_EQUAL_REAL( ac.uMin, 0.0f, "ac.uMin", 0.00001);
-	CHECK_EQUAL_REAL( ac.vMin, 0.0f, "ac.vMin", 0.00001);
-	CHECK_EQUAL_REAL( ac.uMax, 0.0f, "ac.uMax", 0.00001);
-	CHECK_EQUAL_REAL( ac.vMax, 0.0f, "ac.vMax", 0.00001);
-	CHECK_EQUAL_REAL( ac.uWidth, 0.0f, "ac.uWidth", 0.00001);
-	CHECK_EQUAL_REAL( ac.vHeight, 0.0f, "ac.vHeight", 0.00001);
+	CHECK_EQUAL_REAL( ac.uMin, 0.0f, "cancel test 1 ac.uMin", 0.00001);
+	CHECK_EQUAL_REAL( ac.vMin, 0.0f, "cancel test 1 ac.vMin", 0.00001);
+	CHECK_EQUAL_REAL( ac.uMax, 0.0f, "cancel test 1 ac.uMax", 0.00001);
+	CHECK_EQUAL_REAL( ac.vMax, 0.0f, "cancel test 1 ac.vMax", 0.00001);
+	CHECK_EQUAL_REAL( ac.uWidth, 0.0f, "cancel test 1 ac.uWidth", 0.00001);
+	CHECK_EQUAL_REAL( ac.vHeight, 0.0f, "cancel test 1 ac.vHeight", 0.00001);
+	CHECK_EQUAL_INT( aimCalibrator.getMode(), devastar::AIM_CALIBRATE_UPPER_LEFT, "Check Calibrator Mode is now  UPPER LEFT after cancel" );
 
-/*
-  aimCalibrator.resetCalibration();
-  aimCalibrator.cancelCalibration();
+
+  // add left samples
+  u = -10.0f;
+  v = -10.0f;
+  for( int i=0; i < maxSamples; ++i ) {
+    aimCalibrator.appendSample(u,v);
+  }
+  u = 110.0f;
+  v = 110.0f;
+  for( int i=0; i < maxSamples; ++i ) {
+    aimCalibrator.appendSample(u,v);
+  }
+	CHECK_EQUAL_REAL( ac.uMin, -10.0f, "ac.uMin", 0.00001);
+	CHECK_EQUAL_REAL( ac.vMin, -10.0f, "ac.vMin", 0.00001);
+	CHECK_EQUAL_REAL( ac.uMax, 110.0f, "ac.uMax", 0.00001);
+	CHECK_EQUAL_REAL( ac.vMax, 110.0f, "ac.vMax", 0.00001);
+	CHECK_EQUAL_REAL( ac.uWidth, 120.0f, "ac.uWidth", 0.00001);
+	CHECK_EQUAL_REAL( ac.vHeight, 120.0f, "ac.vHeight", 0.00001);
+	CHECK_EQUAL_INT( aimCalibrator.getMode(), devastar::AIM_CALIBRATE_CALIBRATED, "Check Calibrator Mode is now CALIBRATED " );
+
+  std::cout << "Save calibration" << std::endl;
+  // should write to file and set -10,110,-10,110 as the *current* calibration
   aimCalibrator.saveCalibration();
-  */
+  // Canceling at this point will keep -10,110,-10,111 as it was saved in the previous test
+  aimCalibrator.cancelCalibration();
+	CHECK_EQUAL_REAL( ac.uMin, -10.0f, "cancel test 2 ac.uMin", 0.00001);
+	CHECK_EQUAL_REAL( ac.vMin, -10.0f, "cancel test 2 ac.vMin", 0.00001);
+	CHECK_EQUAL_REAL( ac.uMax, 110.0f, "cancel test 2 ac.uMax", 0.00001);
+	CHECK_EQUAL_REAL( ac.vMax, 110.0f, "cancel test 2 ac.vMax", 0.00001);
+	CHECK_EQUAL_REAL( ac.uWidth, 120.0f, "cancel test 2 ac.uWidth", 0.00001);
+	CHECK_EQUAL_REAL( ac.vHeight, 120.0f, "cancel test 2 ac.vHeight", 0.00001);
+	CHECK_EQUAL_INT( aimCalibrator.getMode(), devastar::AIM_CALIBRATE_UPPER_LEFT, "Check Calibrator Mode is now UPPER LEFT " );
+
+  std::cout << "Check saved file" << std::endl;
+  // Check file by reading another calibration and compare 
+  devastar::AimCalibration ac2;
+  ac2.readCalibrationFile( testOutfile2 );
+	CHECK_EQUAL_REAL( ac2.uMin, -10.0f, "read in ac2.uMin", 0.00001);
+	CHECK_EQUAL_REAL( ac2.vMin, -10.0f, "read in ac2.vMin", 0.00001);
+	CHECK_EQUAL_REAL( ac2.uMax, 110.0f, "read in ac2.uMax", 0.00001);
+	CHECK_EQUAL_REAL( ac2.vMax, 110.0f, "read in ac2.vMax", 0.00001);
+	CHECK_EQUAL_REAL( ac2.uWidth, 120.0f, "read in ac2.uWidth", 0.00001);
+	CHECK_EQUAL_REAL( ac2.vHeight, 120.0f, "read in ac2.vHeight", 0.00001);
+	CHECK_EQUAL_INT( aimCalibrator.getMode(), devastar::AIM_CALIBRATE_UPPER_LEFT, "Check Calibrator Mode is now UPPER LEFT " );
+
 }
