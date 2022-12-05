@@ -246,8 +246,10 @@ int main(int argc, char* argv[] )
   // setup videocapture
   cv::VideoCapture inputVideo;
   inputVideo.open(0);
-  inputVideo.set(cv::CAP_PROP_FRAME_WIDTH, 640);
-  inputVideo.set(cv::CAP_PROP_FRAME_HEIGHT, 480);
+  const int frameWidth = 640.0f;
+  const int frameHeight = 480.0f;
+  inputVideo.set(cv::CAP_PROP_FRAME_WIDTH, frameWidth);
+  inputVideo.set(cv::CAP_PROP_FRAME_HEIGHT, frameHeight);
 
 
   // Setup object points
@@ -614,8 +616,8 @@ int main(int argc, char* argv[] )
           if( hit ) {
 #ifdef SHOW_IMAGE
             cv::Point2f pt;
-            pt.x = (u/conf.irWidth) * 640.0f;
-            pt.y = (v/conf.irHeight) * 480.0f;
+            pt.x = (u/conf.irWidth) * float(frameWidth);
+            pt.y = (v/conf.irHeight) * float(frameHeight); 
             cv::circle( displayCopy, pt, 5.0f, cv::Scalar(0,255,255), 3.0f);
             cv::imshow("points", displayCopy );
             cv::waitKey(1);
