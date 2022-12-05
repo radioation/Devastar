@@ -132,7 +132,6 @@ void gpio_cleanup() {
 int main(int argc, char* argv[] )
 {
   bool doCalibration = false;
-  auto lastMode = devastar::AIM_CALIBRATE_START;
   auto lastButton = devastar::BUTTON_NONE;
   if( argc > 1 ) {
     // check argc
@@ -146,7 +145,7 @@ int main(int argc, char* argv[] )
   // check configuration path
   fs::path configPath("./config.yml");
   fs::path gunCalibrationPath("./aim_calib.yml");
- 
+
   devastar::Configuration conf( configPath.string() ); 
 
   // from obvservation with delay4Cycles() on arduino
@@ -621,7 +620,7 @@ int main(int argc, char* argv[] )
             cv::imshow("points", displayCopy );
             cv::waitKey(1);
 #endif
-	    // arduino has the min/max values  We just need the X/Y range calculated from the percentage
+            // arduino has the min/max values  We just need the X/Y range calculated from the percentage
             auto outX = ( (u-ac.uMin) / ac.uWidth) * conf.outWidth;
             auto outY = ( (v-ac.vMin) / ac.vHeight) * conf.outHeight;
             if( !use16BitData ) {
@@ -653,33 +652,25 @@ int main(int argc, char* argv[] )
           auto currentShots = aimCalibrator.getCurrentSampleCount();
           auto maxShots = aimCalibrator.getMaxSamples();
 
-          if( currentMode != lastMode ) {
-            switch( currentMode ) {
-              case devastar::AIM_CALIBRATE_UPPER_LEFT:
-                std::cout << "\33[2K\rAim at upper left corner and pull trigger: " << currentShots << "/" << maxShots << "      " << std::flush;
-                // upper left, print out message to aim at upper left pull trigger + count
-                break;
-              case devastar::AIM_CALIBRATE_LOWER_RIGHT:
-                // lower right, print out message to aim at lower right pull trigger + count
-                std::cout << "\33[2K\rAim at lower right corner and pull trigger: " << currentShots << "/" << maxShots << "      " << std::flush;
-                break;
-              case devastar::AIM_CALIBRATE_CALIBRATED:
-                std::cout << "\33[2K\rCalibrated: B to reset calibration, C to Cancel, Start to Save          " << std::flush;
-                // tell user to press B to redo, C to cancel calibration, S to save
-                break;
-              case devastar::AIM_CALIBRATE_SAVED:
-                std::cout << "\33[2K\rSaved: B to reset calibration, C or Start to exit      " << std::flush;
-                // tell user to press B to redo, C to cancel calibration, S to save
-                break;
-              default:
-                break;
-            }
-            // set the mode
-            lastMode = currentMode;
-
+          switch( currentMode ) {
+            case devastar::AIM_CALIBRATE_UPPER_LEFT:
+              std::cout << "\33[2K\rAim at upper left corner and pull trigger: " << currentShots << "/" << maxShots << "      " << std::flush;
+              break;
+            case devastar::AIM_CALIBRATE_LOWER_RIGHT:
+              std::cout << "\33[2K\rAim at lower right corner and pull trigger: " << currentShots << "/" << maxShots << "      " << std::flush;
+              break;
+            case devastar::AIM_CALIBRATE_CALIBRATED:
+              std::cout << "\33[2K\rCalibrated: B to reset calibration, C to Cancel, Start to Save          " << std::flush;
+              break;
+            case devastar::AIM_CALIBRATE_SAVED:
+              std::cout << "\33[2K\rSaved: B to reset calibration, C or Start to exit      " << std::flush;
+              break;
+            default:
+              break;
           }
 
 
+          // A is trigger
           if( buttons & devastar::BUTTON_A ) {
             if( lastButton != devastar::BUTTON_A ) {
               lastButton = devastar::BUTTON_A;
@@ -697,16 +688,20 @@ int main(int argc, char* argv[] )
             if( lastButton != devastar::BUTTON_C ) {
               lastButton = devastar::BUTTON_C;
               aimCalibrator.cancelCalibration();
+              doCalibration = false;
             } 
           } else if( buttons & devastar::BUTTON_D ) {
             if( lastButton != devastar::BUTTON_D ) {
               lastButton = devastar::BUTTON_D;
-              aimCalibrator.saveCalibration();
+              if( currentMode == devastar::AIM_CALIBRATE_CALIBRATED ) {
+                aimCalibrator.saveCalibration();
+                doCalibration = false;
+              }
             } 
           } else if ( buttons == 0 ) {
             lastButton = devastar::BUTTON_NONE;
           }
-        } // if( doCalibration ) {
+        } // if( doCalibration ) 
 
 
         if( hit ) {

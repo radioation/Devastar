@@ -63,8 +63,11 @@ namespace devastar {
 
       size_t appendSample( const float&u, const float& v );
 
+      // clear calibration to default values
       AimCalibrateMode resetCalibration();
+      // cancle current values and restor the original settings
       void cancelCalibration();
+      // save calibration to file. Will overwrite original settings with newly saved values
       void saveCalibration();
 
 
