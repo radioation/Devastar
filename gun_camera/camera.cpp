@@ -24,8 +24,8 @@
 #define BAUDRATE B38400            
 
 #define SHOW_IMAGE
+#define SHOW_3D
 //#define SHOW_CALC
-//#define SHOW_3D
 //#define SHOW_TIME
 
 
@@ -159,11 +159,11 @@ int main(int argc, char* argv[] )
   // Sega Light Phaser
   // X range is 24 to 247 : send 0 through 223
   // Y range is 15 to 193 : send 0 through 178
-  devastar::AimCalibration ac(conf);
+  devastar::AimCalibration ac;
   if( fs::exists( gunCalibrationPath ) ) {
     ac.readCalibrationFile( gunCalibrationPath );
   }
-  devastar::AimCalibrator aimCalibrator(ac, 5, configPath.string() );
+  devastar::AimCalibrator aimCalibrator(ac, 5, gunCalibrationPath.string() );
 
   std::cout << "Using: serial_device: " << conf.serialDevice << "\n";
   std::cout << "     ir_width: " << conf.irWidth << "\n";
@@ -664,11 +664,11 @@ int main(int argc, char* argv[] )
                 std::cout << "\33[2K\rAim at lower right corner and pull trigger: " << currentShots << "/" << maxShots << "      " << std::flush;
                 break;
               case devastar::AIM_CALIBRATE_CALIBRATED:
-                std::cout << "\33[2K\rCalibrated: B to restart, C to Cancel, Start to Save          " << std::flush;
+                std::cout << "\33[2K\rCalibrated: B to reset calibration, C to Cancel, Start to Save          " << std::flush;
                 // tell user to press B to redo, C to cancel calibration, S to save
                 break;
               case devastar::AIM_CALIBRATE_SAVED:
-                std::cout << "\33[2K\rSaved: B to restart calibration, C or Start to exit      " << std::flush;
+                std::cout << "\33[2K\rSaved: B to reset calibration, C or Start to exit      " << std::flush;
                 // tell user to press B to redo, C to cancel calibration, S to save
                 break;
               default:
@@ -691,7 +691,7 @@ int main(int argc, char* argv[] )
           } else if( buttons & devastar::BUTTON_B ) {
             if( lastButton != devastar::BUTTON_B ) {
               lastButton = devastar::BUTTON_B;
-              aimCalibrator.restartCalibration();
+              aimCalibrator.resetCalibration();
             } 
           } else if( buttons & devastar::BUTTON_C ) {
             if( lastButton != devastar::BUTTON_C ) {
