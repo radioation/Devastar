@@ -4,22 +4,22 @@
 #define CHECK_EQUAL_INT(VALUE, EXPECTED, NAME) \
   if (VALUE != EXPECTED) \
     { \
-      std::cerr  << "FAILED " << NAME << " expected: " << EXPECTED << " value: " << VALUE <<"\n"; \
+      std::cerr  << "\033[1;31mFAILED\033[0m " << NAME << " expected: " << EXPECTED << " value: " << VALUE <<"\n"; \
     } \
   else \
     { \
-      std::cerr  << "PASSED " << NAME << " expected: " << EXPECTED << " value: " << VALUE <<"\n"; \
+      std::cerr  << "\033[1;32mPASSED\033[0m " << NAME << " expected: " << EXPECTED << " value: " << VALUE <<"\n"; \
     } 
 
 
 #define CHECK_EQUAL_REAL(VALUE, EXPECTED, NAME, MAX_DIFF ) \
   if (abs( VALUE -EXPECTED) > MAX_DIFF ) \
     { \
-      std::cerr  << "FAILED " << NAME << " expected: " << EXPECTED << " value: " << VALUE <<"\n"; \
+      std::cerr  << "\033[1;31mFAILED\033[0m " << NAME << " expected: " << EXPECTED << " value: " << VALUE <<"\n"; \
     } \
   else \
     { \
-      std::cerr  << "PASSED " << NAME << " expected: " << EXPECTED << " value: " << VALUE <<"\n"; \
+      std::cerr  << "\033[1;32mPASSED\033[0m " << NAME << " expected: " << EXPECTED << " value: " << VALUE <<"\n"; \
     } 
 
 
