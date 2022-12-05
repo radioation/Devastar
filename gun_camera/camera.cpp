@@ -682,21 +682,32 @@ int main(int argc, char* argv[] )
           } else if( buttons & devastar::BUTTON_B ) {
             if( lastButton != devastar::BUTTON_B ) {
               lastButton = devastar::BUTTON_B;
+              // complety clear the values
               aimCalibrator.resetCalibration();
             } 
           } else if( buttons & devastar::BUTTON_C ) {
             if( lastButton != devastar::BUTTON_C ) {
               lastButton = devastar::BUTTON_C;
-              aimCalibrator.cancelCalibration();
-              doCalibration = false;
+              if( currentMode == devastar::AIM_CALIBRATE_CALIBRATED ) {
+                // go back to old calibration values
+                aimCalibrator.cancelCalibration(); 
+              } else {
+                // exit out in all other cases
+                std::cout << "\nExiting out\n";
+                exit(0);
+              }
             } 
           } else if( buttons & devastar::BUTTON_D ) {
             if( lastButton != devastar::BUTTON_D ) {
               lastButton = devastar::BUTTON_D;
               if( currentMode == devastar::AIM_CALIBRATE_CALIBRATED ) {
+                // if calibrated, save it
                 aimCalibrator.saveCalibration();
-                doCalibration = false;
-              }
+              } else if( currentMode == devastar::AIM_CALIBRATE_SAVED ) {
+                // already saved, so exit
+                std::cout << "\nExiting out\n";
+                exit(0);
+              } // ignore the rest
             } 
           } else if ( buttons == 0 ) {
             lastButton = devastar::BUTTON_NONE;

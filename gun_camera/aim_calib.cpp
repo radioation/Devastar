@@ -127,9 +127,7 @@ void AimCalibrator::cancelCalibration() {
 void AimCalibrator::saveCalibration() {
   m_aimCalibration.writeCalibrationFile( m_calibrationPath );
   m_aimCalibrationOrig =  m_aimCalibration;
-  std::cout << "m_aimCalibrationOrig.uMin " << m_aimCalibrationOrig.uMin << std::endl;
-  std::cout << "m_aimCalibrationOrig.uMax " << m_aimCalibrationOrig.uMax << std::endl;
-  resetCalibration();
+  m_mode = AIM_CALIBRATE_SAVED;
 }
 
 UVPt AimCalibrator::average( const std::vector<UVPt>& vec ) {
