@@ -23,8 +23,8 @@
 #define BUFFER_SIZE 64
 #define BAUDRATE B38400            
 
-#define SHOW_IMAGE
-#define SHOW_3D
+//#define SHOW_IMAGE
+//#define SHOW_3D
 //#define SHOW_CALC
 //#define SHOW_TIME
 
@@ -623,8 +623,8 @@ int main(int argc, char* argv[] )
             cv::waitKey(1);
 #endif
             // arduino has the min/max values  We just need the X/Y range calculated from the percentage
-            auto outX = ( (u-ac.uMin) / ac.uWidth) * conf.outWidth;
-            auto outY = ( (v-ac.vMin) / ac.vHeight) * conf.outHeight;
+            auto outX = int(( (u-ac.uMin) / ac.uWidth) * conf.outWidth);
+            auto outY = int(( (v-ac.vMin) / ac.vHeight) * conf.outHeight);
             if( !use16BitData ) {
               xyb[0] = (unsigned char)outX;
               xyb[1] = (unsigned char)outY;
