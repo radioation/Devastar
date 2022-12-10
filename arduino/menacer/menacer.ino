@@ -41,12 +41,12 @@ const int S_PIN = 12;    // PD6
 
 
 // offsets
-const int minY = 30;
-const int minX = 70;
+const int minY = 26;  //  26 to 247 seems to be the Y range 
+const int minX = 70;  //  69 to 263 seens ti be tge X rabge
 
 // input variables
-volatile byte y = 140;  // line count for aim
-volatile byte x = 200;  // Simulate TH delay for aim
+volatile byte y = 110;  // line count for aim
+volatile byte x = 93;  // Simulate TH delay for aim
 volatile byte buttons = 0;
 
 // I modified delayMicroseconds to use the smallest possible wait
@@ -94,12 +94,13 @@ void TLInterrupt() {
     byte pb = PORTB;
     // TODO: May make more sense to set PB* bits in Raspberry PI properly.
     if ( buttons & 0x01 ) {
-      // B
-      pb = pb | B00100000;
-    }
-    if ( buttons & 0x02 ) {
       // A - trigger
       pb = pb | B01000000;
+    }
+    if ( buttons & 0x02 ) {
+      // B
+      pb = pb | B00100000;
+
     }
     if ( buttons & 0x04 ) {
       // C
@@ -116,12 +117,13 @@ void TLInterrupt() {
 
 void setup() {
   // serial communication
+  //Serial.begin(9600);
   SERIAL_COM.begin(9600);
 
   // Sync Splitter
   pinMode(COMPOSITE_SYNC_1881, INPUT);
   pinMode(VERTICAL_SYNC_1881, INPUT);
-  // TL line from Sega Genesis / MegaDrive
+  // TL line from Sega Genesis / MegaDrive is the reset
   pinMode(TL_PIN, INPUT);
 
   // controller pins
@@ -144,11 +146,18 @@ void setup() {
 }
 
 void loop() {
+ 
   if (SERIAL_COM.available() > 2)
   {
     x = SERIAL_COM.read();
     y = SERIAL_COM.read();
     buttons = SERIAL_COM.read();
-  }
+    // buttons = 1;
+    //  Serial.println((String)"SERIAL_COM.available():" + SERIAL_COM.available()); 
+  } 
 
+  
+ 
 }
+
+
