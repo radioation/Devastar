@@ -23,8 +23,8 @@
 #define BUFFER_SIZE 64
 #define BAUDRATE B38400            
 
-#define SHOW_IMAGE
-#define SHOW_3D
+//#define SHOW_IMAGE
+//#define SHOW_3D
 //#define SHOW_CALC
 //#define SHOW_TIME
 
@@ -330,7 +330,7 @@ int main(int argc, char* argv[] )
   cv::Point2f pt;
   int ticks = 0;
   while (true) {
-	  ++ticks;
+    ++ticks;
 #ifdef SHOW_3D
     glutMainLoopEvent();
 #endif
@@ -397,12 +397,6 @@ int main(int argc, char* argv[] )
     std::cout << "ELAPSED TIME>> cv::threshold(): " << std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count() << "\n"; 
 #endif
     std::vector< std::vector< cv::Point> > contours;
-    std::stringstream ssName;
-    ssName << "frame_" << ticks << ".png";
-    cv::imwrite( ssName.str(), frame );
-    ssName.str("");
-    ssName << "thresh_" << ticks << ".png";
-    cv::imwrite( ssName.str(), thresh );
     // look for IR lights
 #ifdef SHOW_TIME
     startTime = std::chrono::steady_clock::now();
@@ -419,7 +413,6 @@ int main(int argc, char* argv[] )
     float u = -1.0f, v = -1.0f;
     bool solveRet = false;
     // Look for screen intersection if we have at least 4 points
-	std::cout << "contours.size(): " << contours.size() << " " << ticks << std::endl;
     if (contours.size() >= 4) {
 #ifdef SHOW_TIME
       startTime = std::chrono::steady_clock::now();
@@ -452,7 +445,6 @@ int main(int argc, char* argv[] )
       }
 
       // only calculate hit if count is 4
-	std::cout << "centerCount: " << centerCount << " " << ticks << std::endl;
       if( centerCount == 4 ) {
 #ifdef SHOW_TIME
         endTime = std::chrono::steady_clock::now();
@@ -558,9 +550,6 @@ int main(int argc, char* argv[] )
         //cv::circle( displayCopy, pt, 5.0f, cv::Scalar(0,255,255), 3.0f);
 
         cv::imshow("points", displayCopy );
-    ssName.str("");
-    ssName << "overlay_" << ticks << ".png";
-    cv::imwrite( ssName.str(), displayCopy );
         cv::waitKey(1);
 #endif
 
@@ -568,10 +557,8 @@ int main(int argc, char* argv[] )
         // tvec- is the translation vector 
         cv::Mat rvec, tvec;
         std::vector< cv::Mat > rvecs, tvecs;	
-#ifdef SHOW_TIME
-        startTime = std::chrono::steady_clock::now();
-#endif
 
+#ifdef SHOW_CALC
         std::vector<cv::Vec3d> rvecsVec, tvecsVec;
         solvePnPGeneric(worldPoints, centers, cameraMatrix, distCoeffs, rvecsVec, tvecsVec, false, cv::SOLVEPNP_AP3P);
         std::cout << "rvecsVec.size() : " << rvecsVec.size() << std::endl; 
@@ -598,15 +585,17 @@ int main(int argc, char* argv[] )
           std::cout << "  GENERIC U: " << u << " V: " << v << std::endl;
 
         }
+#endif
 
+#ifdef SHOW_TIME
+        startTime = std::chrono::steady_clock::now();
+#endif
         solveRet = cv::solvePnP(worldPoints, centers, cameraMatrix, distCoeffs, rvec, tvec, false, cv::SOLVEPNP_AP3P);
-          std::cout << "STANDARD RVEC: " << rvec << " " << ticks << std::endl;
 #ifdef SHOW_TIME
         endTime = std::chrono::steady_clock::now();
         std::cout << "ELAPSED TIME>> solvePnP(): " << std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count() << "\n"; 
 #endif
         bool hit = false;
-        std::cout << "solveRet: " << solveRet << " " << ticks << std::endl;
         if( solveRet ) {
 
           cv::Mat R;
@@ -651,20 +640,11 @@ int main(int argc, char* argv[] )
           std::cout << "U: " << u << " V: " << v << " hit: " << hit << std::endl;
 #endif
 
-          std::cout << "Ray0: " << Ray0 << " " << ticks << std::endl;
-          std::cout << "D: " << D   << " " << ticks << std::endl;
-          std::cout << "P0: " << P0 << " " << ticks << std::endl;
-          std::cout << "S1: " << S1 << " " << ticks << std::endl;
-          std::cout << "S2: " << S2 << " " << ticks << std::endl;
 
 #ifdef SHOW_3D
           update3d( tvec, R, u, v );
 #endif
-          std::cout << "uv: " << u << " " << v << " "  << ticks << std::endl;
-          std::cout << "ac.uMin: " << ac.uMin << " " <<   ac.uMax << " "  << ticks << std::endl;
-          std::cout << "ac.vMin: " << ac.vMin << " " <<   ac.vMax << " "  << ticks << std::endl;
           hit = u > ac.uMin && u < ac.uMax && v > ac.vMin && v < ac.vMax;
-          std::cout << "hit: " << hit << " " << ticks << std::endl;
           if( hit ) {
 #ifdef SHOW_IMAGE
             cv::Point2f pt;
@@ -677,7 +657,6 @@ int main(int argc, char* argv[] )
             // arduino has the min/max values  We just need the X/Y range calculated from the percentage
             auto outX = int(( (u-ac.uMin) / ac.uWidth) * conf.outWidth);
             auto outY = int(( (v-ac.vMin) / ac.vHeight) * conf.outHeight);
-            std::cout << "XY: " << outX << " " << outY << " " << ticks << std::endl;
             if( !use16BitData ) {
               xyb[0] = (unsigned char)outX;
               xyb[1] = (unsigned char)outY;
@@ -784,7 +763,6 @@ int main(int argc, char* argv[] )
     } // if (contours.size() >= 4) 
 
 
-    std::cout << "XY: -1, -1 " << ticks << std::endl;
     // send -1, -1 to arduino
     if(serialPortReady ) {
       if( !use16BitData ) {
