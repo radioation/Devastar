@@ -327,7 +327,9 @@ int main(int argc, char* argv[] )
 
   // look at the cameras
   cv::Point2f pt;
+  int ticks = 0;
   while (true) {
+	  ++ticks;
 #ifdef SHOW_3D
     glutMainLoopEvent();
 #endif
@@ -349,12 +351,6 @@ int main(int argc, char* argv[] )
       return -4;
     }
 
-    std:: cout << "values: "
-	    << values[0]  << "|"
-	    << values[1]  << "|"
-	    << values[2]  << "|"
-	    << values[3]  << "|"
-	    << values[4]  << std::endl;
     if( !values[0] ) {
       buttons |= devastar::BUTTON_A;
     }
@@ -370,8 +366,6 @@ int main(int argc, char* argv[] )
     if( !values[4] ) {
       buttons |= devastar::BUTTON_E;   // SWITCH
     }
-    std::cout << "buttons: " << int(buttons) << std::endl;
-
 
     // Process Video from camera
 #ifdef SHOW_TIME
@@ -396,13 +390,18 @@ int main(int argc, char* argv[] )
 #ifdef SHOW_TIME
     startTime = std::chrono::steady_clock::now();
 #endif
-    cv::threshold( gray, thresh, 200, 255, cv::THRESH_BINARY);
+    cv::threshold( gray, thresh, 127, 255, cv::THRESH_BINARY);
 #ifdef SHOW_TIME
     endTime = std::chrono::steady_clock::now();
     std::cout << "ELAPSED TIME>> cv::threshold(): " << std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count() << "\n"; 
 #endif
     std::vector< std::vector< cv::Point> > contours;
-
+    std::stringstream ssName;
+    ssName << "frame_" << ticks << ".png";
+    cv::imwrite( ssName.str(), frame );
+    ssName.str("");
+    ssName << "thresh_" << ticks << ".png";
+    cv::imwrite( ssName.str(), thresh );
     // look for IR lights
 #ifdef SHOW_TIME
     startTime = std::chrono::steady_clock::now();
@@ -419,6 +418,7 @@ int main(int argc, char* argv[] )
     float u = -1.0f, v = -1.0f;
     bool solveRet = false;
     // Look for screen intersection if we have at least 4 points
+	std::cout << "contours.size(): " << contours.size() << " " << ticks << std::endl;
     if (contours.size() >= 4) {
 #ifdef SHOW_TIME
       startTime = std::chrono::steady_clock::now();
@@ -451,6 +451,7 @@ int main(int argc, char* argv[] )
       }
 
       // only calculate hit if count is 4
+	std::cout << "centerCount: " << centerCount << " " << ticks << std::endl;
       if( centerCount == 4 ) {
 #ifdef SHOW_TIME
         endTime = std::chrono::steady_clock::now();
@@ -556,6 +557,9 @@ int main(int argc, char* argv[] )
         //cv::circle( displayCopy, pt, 5.0f, cv::Scalar(0,255,255), 3.0f);
 
         cv::imshow("points", displayCopy );
+    ssName.str("");
+    ssName << "overlay_" << ticks << ".png";
+    cv::imwrite( ssName.str(), displayCopy );
         cv::waitKey(1);
 #endif
 
@@ -566,12 +570,42 @@ int main(int argc, char* argv[] )
 #ifdef SHOW_TIME
         startTime = std::chrono::steady_clock::now();
 #endif
+
+        std::vector<cv::Vec3d> rvecsVec, tvecsVec;
+        solvePnPGeneric(worldPoints, centers, cameraMatrix, distCoeffs, rvecsVec, tvecsVec, false, cv::SOLVEPNP_AP3P);
+        std::cout << "rvecsVec.size() : " << rvecsVec.size() << std::endl; 
+        for( int vecIter=0; vecIter < rvecsVec.size(); ++ vecIter ) {
+          std::cout << "GENERIC RVEC: " << rvecsVec[vecIter] << " " << ticks << std::endl;
+          cv::Mat R;
+          cv::Rodrigues(rvecsVec[vecIter], R); // get rotation matrix R ( 3x3 ) from rotation vector 
+          R = R.t(); // inverse
+          tvec = -R * tvecsVec[vecIter]; // translation of inverseA == actual camera position
+
+          // compute itersection
+          cv::Vec3f Ray0,D;
+          Ray0[0] = tvec.at<double>(0);
+          Ray0[1] = tvec.at<double>(1);
+          Ray0[2] = tvec.at<double>(2);
+
+          D[0] = R.at<double>(0, 2);
+          D[1] = R.at<double>(1, 2);
+          D[2] = R.at<double>(2, 2);
+          std::cout << "  GENERIC Ray0: " << Ray0 << std::endl;
+          std::cout << "  GENERIC D: " << D << std::endl;
+          float u,v;
+          computeUV(Ray0, D, P0, S1, S2, conf.irWidth, conf.irHeight, u, v);
+          std::cout << "  GENERIC U: " << u << " V: " << v << std::endl;
+
+        }
+
         solveRet = cv::solvePnP(worldPoints, centers, cameraMatrix, distCoeffs, rvec, tvec, false, cv::SOLVEPNP_AP3P);
+          std::cout << "STANDARD RVEC: " << rvec << " " << ticks << std::endl;
 #ifdef SHOW_TIME
         endTime = std::chrono::steady_clock::now();
         std::cout << "ELAPSED TIME>> solvePnP(): " << std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count() << "\n"; 
 #endif
         bool hit = false;
+        std::cout << "solveRet: " << solveRet << " " << ticks << std::endl;
         if( solveRet ) {
 
           cv::Mat R;
@@ -616,12 +650,20 @@ int main(int argc, char* argv[] )
           std::cout << "U: " << u << " V: " << v << " hit: " << hit << std::endl;
 #endif
 
-
+          std::cout << "Ray0: " << Ray0 << " " << ticks << std::endl;
+          std::cout << "D: " << D   << " " << ticks << std::endl;
+          std::cout << "P0: " << P0 << " " << ticks << std::endl;
+          std::cout << "S1: " << S1 << " " << ticks << std::endl;
+          std::cout << "S2: " << S2 << " " << ticks << std::endl;
 
 #ifdef SHOW_3D
           update3d( tvec, R, u, v );
 #endif
+          std::cout << "uv: " << u << " " << v << " "  << ticks << std::endl;
+          std::cout << "ac.uMin: " << ac.uMin << " " <<   ac.uMax << " "  << ticks << std::endl;
+          std::cout << "ac.vMin: " << ac.vMin << " " <<   ac.vMax << " "  << ticks << std::endl;
           hit = u > ac.uMin && u < ac.uMax && v > ac.vMin && v < ac.vMax;
+          std::cout << "hit: " << hit << " " << ticks << std::endl;
           if( hit ) {
 #ifdef SHOW_IMAGE
             cv::Point2f pt;
@@ -634,12 +676,12 @@ int main(int argc, char* argv[] )
             // arduino has the min/max values  We just need the X/Y range calculated from the percentage
             auto outX = int(( (u-ac.uMin) / ac.uWidth) * conf.outWidth);
             auto outY = int(( (v-ac.vMin) / ac.vHeight) * conf.outHeight);
+            std::cout << "XY: " << outX << " " << outY << " " << ticks << std::endl;
             if( !use16BitData ) {
               xyb[0] = (unsigned char)outX;
               xyb[1] = (unsigned char)outY;
               xyb[2] = buttons;
               if(serialPortReady ) {
-	        std::cout << "XY: " << outX << " " << outY << " buttons: " << int(buttons) << std::endl;
                 auto ret = write( fd, xyb, sizeof(xyb) );
               }
             } else {
@@ -650,7 +692,7 @@ int main(int argc, char* argv[] )
               xxyyb[4] = buttons;
               if(serialPortReady ) {
                 auto ret = write( fd, xyb, sizeof(xyb) );
-		fsync(fd);
+                fsync(fd);
               }
             }
             //continue;  // head back up the loop
@@ -730,8 +772,8 @@ int main(int argc, char* argv[] )
 
         if( hit ) {
 #ifdef SHOW_TIME
-    auto loopBottomTime = std::chrono::steady_clock::now();
-    std::cout << "ELAPSED TIME>> LOOP top to bottom" << std::chrono::duration_cast<std::chrono::milliseconds>(loopTopTime - loopBottomTime).count() << "\n"; 
+          auto loopBottomTime = std::chrono::steady_clock::now();
+          std::cout << "ELAPSED TIME>> LOOP top to bottom" << std::chrono::duration_cast<std::chrono::milliseconds>(loopTopTime - loopBottomTime).count() << "\n"; 
 #endif
           continue;
         }
@@ -741,11 +783,11 @@ int main(int argc, char* argv[] )
     } // if (contours.size() >= 4) 
 
 
+    std::cout << "XY: -1, -1 " << ticks << std::endl;
     // send -1, -1 to arduino
     if(serialPortReady ) {
       if( !use16BitData ) {
         offscreen[2] = buttons;
-	std::cout << "XY: -1, -1" << std::endl;
         auto ret = write( fd, offscreen, sizeof(offscreen) );
       } else {
         offscreen[4] = buttons;
