@@ -23,8 +23,8 @@
 #define BUFFER_SIZE 64
 #define BAUDRATE B38400            
 
-//#define SHOW_IMAGE
-//#define SHOW_3D
+#define SHOW_IMAGE
+#define SHOW_3D
 //#define SHOW_CALC
 //#define SHOW_TIME
 
@@ -250,6 +250,7 @@ int main(int argc, char* argv[] )
   const int frameHeight = 480.0f;
   inputVideo.set(cv::CAP_PROP_FRAME_WIDTH, frameWidth);
   inputVideo.set(cv::CAP_PROP_FRAME_HEIGHT, frameHeight);
+  std::cout << "CAP_PROP_BUFFERSIZE : " << inputVideo.set(cv::CAP_PROP_BUFFERSIZE,  1) << std::endl;
 
 
   // Setup object points
@@ -333,12 +334,13 @@ int main(int argc, char* argv[] )
     // Process buttons
     buttons = 0;
 #ifdef SHOW_TIME
+    auto loopTopTime = std::chrono::steady_clock::now();
     auto startTime = std::chrono::steady_clock::now();
 #endif
     err = gpiod_line_get_value_bulk(&g_lines, values);
 #ifdef SHOW_TIME
     auto endTime = std::chrono::steady_clock::now();
-    std::cout << "ELAPSED TIME>> frame gpiod_line_get_value_bulk(): " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
+    std::cout << "ELAPSED TIME>> frame gpiod_line_get_value_bulk(): " << std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count() << "\n"; 
 #endif
     if(err)
     {
@@ -347,6 +349,12 @@ int main(int argc, char* argv[] )
       return -4;
     }
 
+    std:: cout << "values: "
+	    << values[0]  << "|"
+	    << values[1]  << "|"
+	    << values[2]  << "|"
+	    << values[3]  << "|"
+	    << values[4]  << std::endl;
     if( !values[0] ) {
       buttons |= devastar::BUTTON_A;
     }
@@ -360,8 +368,9 @@ int main(int argc, char* argv[] )
       buttons |= devastar::BUTTON_D;   // start button on menacer
     }
     if( !values[4] ) {
-      buttons |= devastar::BUTTON_E;   // turbo switch
+      buttons |= devastar::BUTTON_E;   // SWITCH
     }
+    std::cout << "buttons: " << int(buttons) << std::endl;
 
 
     // Process Video from camera
@@ -371,7 +380,7 @@ int main(int argc, char* argv[] )
     inputVideo >> frame;
 #ifdef SHOW_TIME
     endTime = std::chrono::steady_clock::now();
-    std::cout << "ELAPSED TIME>> frame grab: " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
+    std::cout << "ELAPSED TIME>> frame grab: " << std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count() << "\n"; 
 #endif
     // cv to grey
 #ifdef SHOW_TIME
@@ -380,7 +389,7 @@ int main(int argc, char* argv[] )
     cv::cvtColor( frame, gray, cv::COLOR_BGR2GRAY); 
 #ifdef SHOW_TIME
     endTime = std::chrono::steady_clock::now();
-    std::cout << "ELAPSED TIME>> cvtColor(): " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
+    std::cout << "ELAPSED TIME>> cvtColor(): " << std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count() << "\n"; 
 #endif
 
     // threshold on brightness
@@ -390,7 +399,7 @@ int main(int argc, char* argv[] )
     cv::threshold( gray, thresh, 200, 255, cv::THRESH_BINARY);
 #ifdef SHOW_TIME
     endTime = std::chrono::steady_clock::now();
-    std::cout << "ELAPSED TIME>> cv::threshold(): " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
+    std::cout << "ELAPSED TIME>> cv::threshold(): " << std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count() << "\n"; 
 #endif
     std::vector< std::vector< cv::Point> > contours;
 
@@ -401,7 +410,7 @@ int main(int argc, char* argv[] )
     cv::findContours( thresh, contours, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
 #ifdef SHOW_TIME
     endTime = std::chrono::steady_clock::now();
-    std::cout << "ELAPSED TIME>> cv::findContours(): " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
+    std::cout << "ELAPSED TIME>> cv::findContours(): " << std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count() << "\n"; 
 #endif
 
 #ifdef SHOW_TIME
@@ -445,7 +454,7 @@ int main(int argc, char* argv[] )
       if( centerCount == 4 ) {
 #ifdef SHOW_TIME
         endTime = std::chrono::steady_clock::now();
-        std::cout << "ELAPSED TIME>> get centers from moments: " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
+        std::cout << "ELAPSED TIME>> get centers from moments: " << std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count() << "\n"; 
 #endif
 
 
@@ -524,7 +533,7 @@ int main(int argc, char* argv[] )
 
 #ifdef SHOW_TIME
         endTime = std::chrono::steady_clock::now();
-        std::cout << "ELAPSED TIME>> sort centers: " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
+        std::cout << "ELAPSED TIME>> sort centers: " << std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count() << "\n"; 
 #endif
 
 
@@ -560,7 +569,7 @@ int main(int argc, char* argv[] )
         solveRet = cv::solvePnP(worldPoints, centers, cameraMatrix, distCoeffs, rvec, tvec, false, cv::SOLVEPNP_AP3P);
 #ifdef SHOW_TIME
         endTime = std::chrono::steady_clock::now();
-        std::cout << "ELAPSED TIME>> solvePnP(): " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
+        std::cout << "ELAPSED TIME>> solvePnP(): " << std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count() << "\n"; 
 #endif
         bool hit = false;
         if( solveRet ) {
@@ -587,7 +596,7 @@ int main(int argc, char* argv[] )
           computeUV(Ray0, D, P0, S1, S2, conf.irWidth, conf.irHeight, u, v);
 #ifdef SHOW_TIME
           endTime = std::chrono::steady_clock::now();
-          std::cout << "ELAPSED TIME>> intersectRect(): " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
+          std::cout << "ELAPSED TIME>> intersectRect(): " << std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count() << "\n"; 
 #endif
 
 
@@ -630,6 +639,7 @@ int main(int argc, char* argv[] )
               xyb[1] = (unsigned char)outY;
               xyb[2] = buttons;
               if(serialPortReady ) {
+	        std::cout << "XY: " << outX << " " << outY << " buttons: " << int(buttons) << std::endl;
                 auto ret = write( fd, xyb, sizeof(xyb) );
               }
             } else {
@@ -640,6 +650,7 @@ int main(int argc, char* argv[] )
               xxyyb[4] = buttons;
               if(serialPortReady ) {
                 auto ret = write( fd, xyb, sizeof(xyb) );
+		fsync(fd);
               }
             }
             //continue;  // head back up the loop
@@ -718,6 +729,10 @@ int main(int argc, char* argv[] )
 
 
         if( hit ) {
+#ifdef SHOW_TIME
+    auto loopBottomTime = std::chrono::steady_clock::now();
+    std::cout << "ELAPSED TIME>> LOOP top to bottom" << std::chrono::duration_cast<std::chrono::milliseconds>(loopTopTime - loopBottomTime).count() << "\n"; 
+#endif
           continue;
         }
 
@@ -730,12 +745,17 @@ int main(int argc, char* argv[] )
     if(serialPortReady ) {
       if( !use16BitData ) {
         offscreen[2] = buttons;
+	std::cout << "XY: -1, -1" << std::endl;
         auto ret = write( fd, offscreen, sizeof(offscreen) );
       } else {
         offscreen[4] = buttons;
         auto ret = write( fd, offscreen16, sizeof(offscreen16) );
       }
     }
+#ifdef SHOW_TIME
+    auto loopBottomTime = std::chrono::steady_clock::now();
+    std::cout << "ELAPSED TIME>> LOOP top to bottom" << std::chrono::duration_cast<std::chrono::milliseconds>(loopTopTime - loopBottomTime).count() << "\n"; 
+#endif
 
   }// while(true)
 }
