@@ -33,6 +33,9 @@ namespace devastar {
     double minBlobSize;
     double maxBlobSize;
 
+    // threshol
+    float irThreshold;
+
   };
 }
 #endif //  _DEV_CONFIGURATION_H_

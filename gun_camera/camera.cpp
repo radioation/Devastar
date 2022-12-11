@@ -172,7 +172,8 @@ int main(int argc, char* argv[] )
   std::cout << " output_x_min: " << conf.outXMin << "\n";
   std::cout << " output_y_min: " << conf.outYMin << "\n";
   std::cout << "min_blob_size: " << conf.minBlobSize << "\n";
-  std::cout << "max_blob_zien: " << conf.maxBlobSize << "\n";
+  std::cout << "max_blob_size: " << conf.maxBlobSize << "\n";
+  std::cout << " ir_threshold: " << conf.irThreshold << "\n";
 
   std::cout << "        u_min: " << ac.uMin << "\n";
   std::cout << "        v_min: " << ac.vMin << "\n";
@@ -390,7 +391,7 @@ int main(int argc, char* argv[] )
 #ifdef SHOW_TIME
     startTime = std::chrono::steady_clock::now();
 #endif
-    cv::threshold( gray, thresh, 127, 255, cv::THRESH_BINARY);
+    cv::threshold( gray, thresh, conf.irThreshold, 255, cv::THRESH_BINARY);
 #ifdef SHOW_TIME
     endTime = std::chrono::steady_clock::now();
     std::cout << "ELAPSED TIME>> cv::threshold(): " << std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count() << "\n"; 

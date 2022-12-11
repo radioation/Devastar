@@ -19,6 +19,7 @@ int main(int argc, char* argv[] )
   float output_y_min = 1.5f;
   double min_blob_size = 2.75;
   double max_blob_size = 125.0;
+  float ir_threshold = 112.0;
 
   std::string configfile = "testconfig.yml";
   std::ofstream testconfig(configfile);
@@ -34,6 +35,7 @@ int main(int argc, char* argv[] )
   testconfig << "output_y_min: " << output_y_min << std::endl;
   testconfig << "min_blob_size: " << min_blob_size << std::endl;
   testconfig << "max_blob_size: " << max_blob_size << std::endl;
+  testconfig << "ir_threshold: " << ir_threshold << std::endl;
   testconfig.close();
 
   devastar::Configuration config( configfile );
@@ -47,4 +49,5 @@ int main(int argc, char* argv[] )
 	CHECK_EQUAL_REAL( config.outYMin, output_y_min, "output_y_min", 0.00001);
 	CHECK_EQUAL_REAL( config.minBlobSize, min_blob_size, "min_blob_size", 0.00001);
 	CHECK_EQUAL_REAL( config.maxBlobSize, max_blob_size, "max_blob_size", 0.00001);
+	CHECK_EQUAL_REAL( config.irThreshold, ir_threshold, "ir_threshold", 0.00001);
 }

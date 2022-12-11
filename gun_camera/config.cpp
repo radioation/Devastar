@@ -16,7 +16,8 @@ Configuration::Configuration(const std::string& configFile)
     outXMin(10.0f),
     outYMin(5.0f),
     minBlobSize(3.0),
-    maxBlobSize(275.0)
+    maxBlobSize(275.0),
+    irThreshold(127.0)
 {
   fs::path configPath(configFile);
 
@@ -52,6 +53,10 @@ Configuration::Configuration(const std::string& configFile)
     }
     if(!fileStorage["max_blob_size"].empty() ) {
       fileStorage["max_blob_size"] >> maxBlobSize;
+    }
+
+    if(!fileStorage["ir_threshold"].empty() ) {
+      fileStorage["ir_threshold"] >> irThreshold;
     }
   }
 }
