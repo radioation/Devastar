@@ -666,13 +666,12 @@ int main(int argc, char* argv[] )
               }
             } else {
               sx = (unsigned short)outX;
-              sy = (unsigned char)outY;
+              sy = (unsigned short)outY;
               memcpy( xxyyb, &sx, sizeof( unsigned short ) ); 
               memcpy( xxyyb + sizeof(unsigned short) , &sy, sizeof( unsigned short ) ); 
               xxyyb[4] = buttons;
               if(serialPortReady ) {
-                auto ret = write( fd, xyb, sizeof(xyb) );
-                fsync(fd);
+                auto ret = write( fd, xxyyb, sizeof(xxyyb) );
               }
             }
             //continue;  // head back up the loop
@@ -769,8 +768,8 @@ int main(int argc, char* argv[] )
         offscreen[2] = buttons;
         auto ret = write( fd, offscreen, sizeof(offscreen) );
       } else {
-        offscreen[4] = buttons;
-        auto ret = write( fd, offscreen16, sizeof(offscreen16) );
+        offscreen16[4] = buttons;
+        //auto ret = write( fd, offscreen16, sizeof(offscreen16) );
       }
     }
 #ifdef SHOW_TIME
