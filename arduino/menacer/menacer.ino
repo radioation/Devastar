@@ -151,10 +151,12 @@ void loop() {
   {
     x = SERIAL_COM.read();
     y = SERIAL_COM.read();
+
     buttons = SERIAL_COM.read();
     // buttons = 1;
     //  Serial.println((String)"SERIAL_COM.available():" + SERIAL_COM.available()); 
   } 
+ 
 
   
  

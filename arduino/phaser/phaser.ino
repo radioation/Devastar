@@ -11,7 +11,7 @@
   See the GNU Lesser General Public License for more details.
   You should have received a copy of the GNU Lesser General Public
   License along with this library; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #define USE_BLUETOOTH_SERIAL
@@ -103,7 +103,7 @@ void loop() {
     y = SERIAL_COM.read();
     buttons = SERIAL_COM.read(); 
     // set buttons
-    if ( buttons & 0x02 ) {
+    if ( buttons & 0x01 ) {
       digitalWrite(PHASER_PIN_6, LOW);  // phaser pins are active low https://allpinouts.org/pinouts/connectors/input_device/sega-master-system-light-phaser-3050/
     } else {
       digitalWrite(PHASER_PIN_6, HIGH);
