@@ -4,7 +4,7 @@
 #include <opencv2/highgui/highgui.hpp>
 
 #include <chrono>
-
+#include <bitset>
 #include <gpiod.h>
 
 #include <experimental/string_view>
@@ -701,7 +701,9 @@ int main(int argc, char* argv[] )
                 auto ret = write( fd, xyb, sizeof(xyb) );
               }
             } else {
-              /*
+              /* mouse mode is 1080p for now.
+               *
+               *
               sx = (unsigned short)outX;
               sy = (unsigned short)outY;
               memcpy( xxyyb, &sx, sizeof( unsigned short ) ); 
@@ -713,11 +715,18 @@ int main(int argc, char* argv[] )
               //  * third byte gets lower 7 bits of X
               //  * fourth byte gets bits 8 through 14 of x
               //  * fift byte gets buttons
-              xxyyb[0] = 0x80 + outX & 0xBF;
-              xxyyb[1] = ( outX  >> 7 ) & 0xBF;
-              xxyyb[2] = outY & 0xBF;
-              xxyyb[3] = ( outY  >> 7 ) & 0xBF;
+              xxyyb[0] = 0x80 | (outX & 0x7F);
+              xxyyb[1] = ( outX  >> 7 ) & 0x7F;
+              xxyyb[2] = outY & 0x7F;
+              xxyyb[3] = ( outY  >> 7 ) & 0x7F;
               xxyyb[4] = buttons;
+
+#ifdef SHOW_CALC
+              std::cout << " " <<  std::bitset<8>( xxyyb[0] )
+                        << " " <<  std::bitset<16>( xxyyb[1] )
+                        << " " <<  std::bitset<8>( xxyyb[2] )
+                        << " " <<  std::bitset<16>( xxyyb[3] ) << std::endl;
+#endif
               if(serialPortReady ) {
                 auto ret = write( fd, xxyyb, sizeof(xxyyb) );
               }
@@ -815,11 +824,11 @@ int main(int argc, char* argv[] )
       if( !use14BitData ) {
         offscreen[2] = buttons;
         auto ret = write( fd, offscreen, sizeof(offscreen) );
-      } /*else {
+      } else {
 	      // Don't bother with offscreen for mouse
         //offscreen16[4] = buttons;
         //auto ret = write( fd, offscreen16, sizeof(offscreen16) );
-      }*/
+      }
     }
 #ifdef SHOW_TIME
     auto loopBottomTime = std::chrono::steady_clock::now();
