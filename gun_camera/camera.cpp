@@ -193,10 +193,7 @@ int main(int argc, char* argv[] )
   // X range is 24 to 247 : send 0 through 223
   // Y range is 15 to 193 : send 0 through 178
   fs::path aimCalibrationPath(aimCalibrationFilename);
-  if( !fs::exists( aimCalibrationPath ) ) {
-    std::cerr << "Aim calibration file '" << aimCalibrationFilename <<"' not found." << std::endl;
-    return 1;
-  }
+
   devastar::AimCalibration ac;
   if( fs::exists( aimCalibrationPath ) ) {
     ac.readCalibrationFile( aimCalibrationPath );
