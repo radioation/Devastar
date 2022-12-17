@@ -1,0 +1,12 @@
+%YAML:1.0
+---
+serial_device: /dev/rfcomm0
+ir_width: 510
+ir_height: 260
+output_width: 223
+output_height: 178
+output_x_min: 24
+output_y_min: 15
+min_blob_size: 1.75
+max_blob_size: 250.0
+ir_threshold: 100.0
