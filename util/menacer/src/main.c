@@ -39,16 +39,15 @@ int main()
 
 	//////////////////////////////////////////////////////////////
 	// Setup background B
-	VDP_setPalette(PAL0, bg.palette->data);
-	int ind = TILE_USERINDEX;
+	PAL_setPalette(PAL0, bg_pal.data, CPU);
+	int ind = TILE_USER_INDEX;
 	VDP_drawImageEx(BG_B, &bg, TILE_ATTR_FULL(PAL0, FALSE, FALSE, FALSE, ind), 0, 0, FALSE, TRUE);
 
 
 	///////////////////////////////////////////////////////////////////////////////////
 	// Sprite Setup
-	Sprite *targetSprite = NULL;
-	VDP_setPalette(PAL1, target.palette->data);
-	VDP_setPalette(PAL2, crosshairs.palette->data);
+	PAL_setPalette(PAL1, target_pal.data, CPU);
+	PAL_setPalette(PAL2, crosshairs_pal.data, CPU);
 	SPR_init();
 
 	// crosshair is 16x16
@@ -67,7 +66,7 @@ int main()
 	// set target in the center position (target is 32x32 )
 	fix32 targetPosX = FIX32(144.0); // 160 - 16 = 144
 	fix32 targetPosY = FIX32(96.0);	 // 112 - 16 = 96
-
+	Sprite* targetSprite;
 	targetSprite = SPR_addSprite(&target,								 // Sprite defined in resource.res
 															 fix32ToInt(targetPosX), // starting X position
 															 fix32ToInt(targetPosY), // starting Y position
@@ -84,9 +83,9 @@ int main()
 
 	// Set background brighter than 0.	Black background
 	// prevents menacer from returning X, Y values.
-	VDP_setPaletteColor(15, 0x0000);
+	PAL_setColor(15, 0x0000);
 	VDP_setTextPalette(0);
-	VDP_setPaletteColor(0, 0x0844);
+	PAL_setColor(0, 0x0844);
 
 	// check Port 2 for the Sega Menacer
 	bool menacerFound = FALSE;
