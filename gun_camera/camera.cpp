@@ -126,27 +126,61 @@ void gpio_cleanup() {
 }
 
 
-
+static void usage(const std::string& programName)
+{
+  std::cerr << "Usage: " << programName << " <options>"
+    << "Options:\n"
+    << "  -h,--help        Shows this help message\n"
+    << "  -c,--calibrate   Run calibrate mode\n"
+    << "  -o,--config_file Specify configuration file [config.yml]\n"
+    << "  -a,--aim_file    Specify aim calibration file [aim_calib.yml]\n"
+    << std::endl;
+}
 
 
 int main(int argc, char* argv[] )
 {
   bool doCalibration = false;
   auto lastButton = devastar::BUTTON_NONE;
-  if( argc > 1 ) {
-    // check argc
-    if( std::experimental::string_view( argv[1] ) == "calibrate" ) {
+  std::string configFilename = "./config.yml";
+  std::string aimCalibrationFilename = "./aim_calib.yml";
+
+  for ( int i=1; i < argc; ++i ) {
+    std::string arg = argv[i];
+    if ((arg == "-h") || (arg == "--help")) {
+      usage(argv[0]);
+      return 0;
+    } else if ((arg == "-c") || (arg == "--calibrate")) {
       doCalibration = true;
+    } else if ((arg == "-o") || (arg == "--config_file")) {
+      // must have a filename
+      if (i + 1 < argc) { 
+        configFilename = argv[++i];
+      } else { 
+        std::cerr << "--configuration requires a filename." << std::endl;
+        return 1;
+      }  
+    } else if ((arg == "-a") || (arg == "--aim_file")) {
+      // must have a filename
+      if (i + 1 < argc) { 
+        aimCalibrationFilename = argv[++i];
+      } else { 
+        std::cerr << "--aim_file requires a filename." << std::endl;
+        return 1;
+      }  
     } else {
-      std::cerr << "Usage: " << argv[0] << " [calibrate]\n";
-      return -1;
+      usage(argv[0]);
+      return 0;
     }
   }
-  // check configuration path
-  fs::path configPath("./config.yml");
-  fs::path gunCalibrationPath("./aim_calib.yml");
 
-  devastar::Configuration conf( configPath.string() ); 
+  // check configuration path
+  fs::path configPath(configFilename);
+  if( !fs::exists( configPath ) ) {
+    std::cerr << "Configuration file '" << configFilename <<"' not found." << std::endl;
+    return 1;
+  }
+  devastar::Configuration conf( configFilename );
 
   // from obvservation with delay4Cycles() on arduino
   // Menacer
@@ -158,11 +192,16 @@ int main(int argc, char* argv[] )
   // Sega Light Phaser
   // X range is 24 to 247 : send 0 through 223
   // Y range is 15 to 193 : send 0 through 178
-  devastar::AimCalibration ac;
-  if( fs::exists( gunCalibrationPath ) ) {
-    ac.readCalibrationFile( gunCalibrationPath );
+  fs::path aimCalibrationPath(aimCalibrationFilename);
+  if( !fs::exists( aimCalibrationPath ) ) {
+    std::cerr << "Aim calibration file '" << aimCalibrationFilename <<"' not found." << std::endl;
+    return 1;
   }
-  devastar::AimCalibrator aimCalibrator(ac, 5, gunCalibrationPath.string() );
+  devastar::AimCalibration ac;
+  if( fs::exists( aimCalibrationPath ) ) {
+    ac.readCalibrationFile( aimCalibrationPath );
+  }
+  devastar::AimCalibrator aimCalibrator(ac, 5, aimCalibrationFilename);
 
   std::cout << "Using: serial_device: " << conf.serialDevice << "\n";
   std::cout << "     ir_width: " << conf.irWidth << "\n";
