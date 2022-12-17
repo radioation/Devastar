@@ -218,8 +218,8 @@ int main(int argc, char* argv[] )
   std::cout << "    U/V width: " << ac.uWidth << "\n";
   std::cout << "   U/V height: " << ac.vHeight << "\n";
 
-  bool use16BitData = conf.outWidth > 255.0f || conf.outHeight > 255.0f;
-  std::cout << " use16BitData: " << use16BitData << "\n";
+  bool use14BitData = conf.outWidth > 255.0f || conf.outHeight > 255.0f;
+  std::cout << " use14BitData: " << use14BitData << "\n";
 
   // check calibration path
   fs::path calibPath("./calib.yml");
@@ -356,10 +356,10 @@ int main(int argc, char* argv[] )
 
   // setup output
   unsigned char offscreen[] = { 0xFF, 0xFF, 0x00 };
-  unsigned char offscreen16[] = { 0xFF, 0xFF, 0xFF, 0xFF, 0x00 };
+  //unsigned char offscreen16[] = { 0xFF, 0xFF, 0xFF, 0xFF, 0x00 };
   unsigned char xyb[3];  // 8 bits for x, y and buttons
   unsigned short sx, sy;
-  unsigned char xxyyb[5]; // 16 bits for X and Y outputs. 8 bits for buttons
+  unsigned char xxyyb[5]; // 14 bits for X and Y outputs. 7 bits for buttons
   unsigned char buttons = 0;
 
   // look at the cameras
@@ -693,7 +693,7 @@ int main(int argc, char* argv[] )
             // arduino has the min/max values  We just need the X/Y range calculated from the percentage
             auto outX = int(( (u-ac.uMin) / ac.uWidth) * conf.outWidth);
             auto outY = int(( (v-ac.vMin) / ac.vHeight) * conf.outHeight);
-            if( !use16BitData ) {
+            if( !use14BitData ) {
               xyb[0] = (unsigned char)outX;
               xyb[1] = (unsigned char)outY;
               xyb[2] = buttons;
@@ -701,10 +701,22 @@ int main(int argc, char* argv[] )
                 auto ret = write( fd, xyb, sizeof(xyb) );
               }
             } else {
+              /*
               sx = (unsigned short)outX;
               sy = (unsigned short)outY;
               memcpy( xxyyb, &sx, sizeof( unsigned short ) ); 
               memcpy( xxyyb + sizeof(unsigned short) , &sy, sizeof( unsigned short ) ); 
+              */
+              // bit7 determines starting char. This allows 14 bit numbers.  
+              //  * first byte gets 128 + lower 7 bits of X
+              //  * second byte gets bits 8 through 14 of x
+              //  * third byte gets lower 7 bits of X
+              //  * fourth byte gets bits 8 through 14 of x
+              //  * fift byte gets buttons
+              xxyyb[0] = 0x80 + outX & 0xBF;
+              xxyyb[1] = ( outX  >> 7 ) & 0xBF;
+              xxyyb[2] = outY & 0xBF;
+              xxyyb[3] = ( outY  >> 7 ) & 0xBF;
               xxyyb[4] = buttons;
               if(serialPortReady ) {
                 auto ret = write( fd, xxyyb, sizeof(xxyyb) );
@@ -798,15 +810,16 @@ int main(int argc, char* argv[] )
     } // if (contours.size() >= 4) 
 
 
-    // send -1, -1 to arduino
+    // send -1, -1 to arduino if offscreen
     if(serialPortReady ) {
-      if( !use16BitData ) {
+      if( !use14BitData ) {
         offscreen[2] = buttons;
         auto ret = write( fd, offscreen, sizeof(offscreen) );
-      } else {
-        offscreen16[4] = buttons;
+      } /*else {
+	      // Don't bother with offscreen for mouse
+        //offscreen16[4] = buttons;
         //auto ret = write( fd, offscreen16, sizeof(offscreen16) );
-      }
+      }*/
     }
 #ifdef SHOW_TIME
     auto loopBottomTime = std::chrono::steady_clock::now();
