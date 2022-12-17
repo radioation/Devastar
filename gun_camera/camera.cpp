@@ -725,7 +725,9 @@ int main(int argc, char* argv[] )
               std::cout << " " <<  std::bitset<8>( xxyyb[0] )
                         << " " <<  std::bitset<16>( xxyyb[1] )
                         << " " <<  std::bitset<8>( xxyyb[2] )
-                        << " " <<  std::bitset<16>( xxyyb[3] ) << std::endl;
+                        << " " <<  std::bitset<16>( xxyyb[3] )
+                        << " " <<  std::bitset<8>( xxyyb[4] )
+		       	<< std::endl;
 #endif
               if(serialPortReady ) {
                 auto ret = write( fd, xxyyb, sizeof(xxyyb) );
