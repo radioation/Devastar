@@ -37,15 +37,15 @@ int main()
 
 	//////////////////////////////////////////////////////////////
 	// Setup background B
-	VDP_setPalette(PAL0, bg.palette->data);
-	int ind = TILE_USERINDEX;
+	PAL_setPalette(PAL0, bg_pal.data, CPU);
+	int ind = TILE_USER_INDEX;
 	VDP_drawImageEx(BG_B, &bg, TILE_ATTR_FULL(PAL0, FALSE, FALSE, FALSE, ind), 0, 0, FALSE, TRUE);
 
 
 	///////////////////////////////////////////////////////////////////////////////////
 	// Sprite Setup
 	Sprite *targetSprite = NULL;
-	VDP_setPalette(PAL1, target.palette->data);
+	PAL_setPalette(PAL1, target_pal.data, CPU);
 	SPR_init();
 
 	// crosshair is 16x16
@@ -82,9 +82,9 @@ int main()
 
 	// Set background brighter than 0.	darker backgrounds
 	// prevent Phaser from returning X, Y values.
-	VDP_setPaletteColor(15, 0x0000);
+	PAL_setColor(15, 0x0000);
 	VDP_setTextPalette(0);
-	VDP_setPaletteColor(0, RGB24_TO_VDPCOLOR(0x44aaff)); // seems to work OK
+	PAL_setColor(0, RGB24_TO_VDPCOLOR(0x44aaff)); // seems to work OK
 
 	// Can't check for phaser with JOY_getPortType().  Just assume we've got a Phaser attached to Port 2
 	JOY_setSupport(PORT_2, JOY_SUPPORT_PHASER);
