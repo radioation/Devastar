@@ -4,7 +4,7 @@
 #include <opencv2/highgui/highgui.hpp>
 
 #include <chrono>
-
+#include <bitset>
 #include <gpiod.h>
 
 #include <experimental/string_view>
@@ -126,27 +126,61 @@ void gpio_cleanup() {
 }
 
 
-
+static void usage(const std::string& programName)
+{
+  std::cerr << "Usage: " << programName << " <options>"
+    << "Options:\n"
+    << "  -h,--help        Shows this help message\n"
+    << "  -c,--calibrate   Run calibrate mode\n"
+    << "  -o,--config_file Specify configuration file [config.yml]\n"
+    << "  -a,--aim_file    Specify aim calibration file [aim_calib.yml]\n"
+    << std::endl;
+}
 
 
 int main(int argc, char* argv[] )
 {
   bool doCalibration = false;
   auto lastButton = devastar::BUTTON_NONE;
-  if( argc > 1 ) {
-    // check argc
-    if( std::experimental::string_view( argv[1] ) == "calibrate" ) {
+  std::string configFilename = "./config.yml";
+  std::string aimCalibrationFilename = "./aim_calib.yml";
+
+  for ( int i=1; i < argc; ++i ) {
+    std::string arg = argv[i];
+    if ((arg == "-h") || (arg == "--help")) {
+      usage(argv[0]);
+      return 0;
+    } else if ((arg == "-c") || (arg == "--calibrate")) {
       doCalibration = true;
+    } else if ((arg == "-o") || (arg == "--config_file")) {
+      // must have a filename
+      if (i + 1 < argc) { 
+        configFilename = argv[++i];
+      } else { 
+        std::cerr << "--configuration requires a filename." << std::endl;
+        return 1;
+      }  
+    } else if ((arg == "-a") || (arg == "--aim_file")) {
+      // must have a filename
+      if (i + 1 < argc) { 
+        aimCalibrationFilename = argv[++i];
+      } else { 
+        std::cerr << "--aim_file requires a filename." << std::endl;
+        return 1;
+      }  
     } else {
-      std::cerr << "Usage: " << argv[0] << " [calibrate]\n";
-      return -1;
+      usage(argv[0]);
+      return 0;
     }
   }
-  // check configuration path
-  fs::path configPath("./config.yml");
-  fs::path gunCalibrationPath("./aim_calib.yml");
 
-  devastar::Configuration conf( configPath.string() ); 
+  // check configuration path
+  fs::path configPath(configFilename);
+  if( !fs::exists( configPath ) ) {
+    std::cerr << "Configuration file '" << configFilename <<"' not found." << std::endl;
+    return 1;
+  }
+  devastar::Configuration conf( configFilename );
 
   // from obvservation with delay4Cycles() on arduino
   // Menacer
@@ -158,11 +192,13 @@ int main(int argc, char* argv[] )
   // Sega Light Phaser
   // X range is 24 to 247 : send 0 through 223
   // Y range is 15 to 193 : send 0 through 178
+  fs::path aimCalibrationPath(aimCalibrationFilename);
+
   devastar::AimCalibration ac;
-  if( fs::exists( gunCalibrationPath ) ) {
-    ac.readCalibrationFile( gunCalibrationPath );
+  if( fs::exists( aimCalibrationPath ) ) {
+    ac.readCalibrationFile( aimCalibrationPath );
   }
-  devastar::AimCalibrator aimCalibrator(ac, 5, gunCalibrationPath.string() );
+  devastar::AimCalibrator aimCalibrator(ac, 5, aimCalibrationFilename);
 
   std::cout << "Using: serial_device: " << conf.serialDevice << "\n";
   std::cout << "     ir_width: " << conf.irWidth << "\n";
@@ -182,8 +218,8 @@ int main(int argc, char* argv[] )
   std::cout << "    U/V width: " << ac.uWidth << "\n";
   std::cout << "   U/V height: " << ac.vHeight << "\n";
 
-  bool use16BitData = conf.outWidth > 255.0f || conf.outHeight > 255.0f;
-  std::cout << " use16BitData: " << use16BitData << "\n";
+  bool use14BitData = conf.outWidth > 255.0f || conf.outHeight > 255.0f;
+  std::cout << " use14BitData: " << use14BitData << "\n";
 
   // check calibration path
   fs::path calibPath("./calib.yml");
@@ -320,10 +356,10 @@ int main(int argc, char* argv[] )
 
   // setup output
   unsigned char offscreen[] = { 0xFF, 0xFF, 0x00 };
-  unsigned char offscreen16[] = { 0xFF, 0xFF, 0xFF, 0xFF, 0x00 };
+  //unsigned char offscreen16[] = { 0xFF, 0xFF, 0xFF, 0xFF, 0x00 };
   unsigned char xyb[3];  // 8 bits for x, y and buttons
   unsigned short sx, sy;
-  unsigned char xxyyb[5]; // 16 bits for X and Y outputs. 8 bits for buttons
+  unsigned char xxyyb[5]; // 14 bits for X and Y outputs. 7 bits for buttons
   unsigned char buttons = 0;
 
   // look at the cameras
@@ -657,7 +693,7 @@ int main(int argc, char* argv[] )
             // arduino has the min/max values  We just need the X/Y range calculated from the percentage
             auto outX = int(( (u-ac.uMin) / ac.uWidth) * conf.outWidth);
             auto outY = int(( (v-ac.vMin) / ac.vHeight) * conf.outHeight);
-            if( !use16BitData ) {
+            if( !use14BitData ) {
               xyb[0] = (unsigned char)outX;
               xyb[1] = (unsigned char)outY;
               xyb[2] = buttons;
@@ -665,14 +701,36 @@ int main(int argc, char* argv[] )
                 auto ret = write( fd, xyb, sizeof(xyb) );
               }
             } else {
+              /* mouse mode is 1080p for now.
+               *
+               *
               sx = (unsigned short)outX;
-              sy = (unsigned char)outY;
+              sy = (unsigned short)outY;
               memcpy( xxyyb, &sx, sizeof( unsigned short ) ); 
               memcpy( xxyyb + sizeof(unsigned short) , &sy, sizeof( unsigned short ) ); 
+              */
+              // bit7 determines starting char. This allows 14 bit numbers.  
+              //  * first byte gets 128 + lower 7 bits of X
+              //  * second byte gets bits 8 through 14 of x
+              //  * third byte gets lower 7 bits of X
+              //  * fourth byte gets bits 8 through 14 of x
+              //  * fift byte gets buttons
+              xxyyb[0] = 0x80 | (outX & 0x7F);
+              xxyyb[1] = ( outX  >> 7 ) & 0x7F;
+              xxyyb[2] = outY & 0x7F;
+              xxyyb[3] = ( outY  >> 7 ) & 0x7F;
               xxyyb[4] = buttons;
+
+#ifdef SHOW_CALC
+              std::cout << " " <<  std::bitset<8>( xxyyb[0] )
+                        << " " <<  std::bitset<16>( xxyyb[1] )
+                        << " " <<  std::bitset<8>( xxyyb[2] )
+                        << " " <<  std::bitset<16>( xxyyb[3] )
+                        << " " <<  std::bitset<8>( xxyyb[4] )
+		       	<< std::endl;
+#endif
               if(serialPortReady ) {
-                auto ret = write( fd, xyb, sizeof(xyb) );
-                fsync(fd);
+                auto ret = write( fd, xxyyb, sizeof(xxyyb) );
               }
             }
             //continue;  // head back up the loop
@@ -763,14 +821,15 @@ int main(int argc, char* argv[] )
     } // if (contours.size() >= 4) 
 
 
-    // send -1, -1 to arduino
+    // send -1, -1 to arduino if offscreen
     if(serialPortReady ) {
-      if( !use16BitData ) {
+      if( !use14BitData ) {
         offscreen[2] = buttons;
         auto ret = write( fd, offscreen, sizeof(offscreen) );
       } else {
-        offscreen[4] = buttons;
-        auto ret = write( fd, offscreen16, sizeof(offscreen16) );
+	      // Don't bother with offscreen for mouse
+        //offscreen16[4] = buttons;
+        //auto ret = write( fd, offscreen16, sizeof(offscreen16) );
       }
     }
 #ifdef SHOW_TIME
