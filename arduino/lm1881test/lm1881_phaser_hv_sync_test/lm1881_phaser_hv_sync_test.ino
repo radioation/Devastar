@@ -29,13 +29,13 @@ const int PHASER_PIN_6 = 9;  // TL is the light gun trigger
 const int minY = 0;
 const int minX = 0;
 
-byte y = 124; //  SGDK: 24 appears to be the top of the screen, 247 the bottom  ( 247 -24  = 223  range )
+byte y = 24; //  SGDK: 24 appears to be the top of the screen, 247 the bottom  ( 247 -24  = 223  range )
 // Shooting gallary  ~32 is the top of the playfield, ~230 is the bottom ( 230 -32 = 198 range. but would need offset due to border)
 
 
 // My SGDK test with SMS Phaser appears to return 30 through 180 when I pan
 // across my TV screen in H32 mode.   so about 150 values over 320 pixels
-byte x = 100; // 15 appears to give me about 30, 193 gets me to about 180  ( 193-15 = 178 range )
+byte x = 100; // 15 appears to give me about 30, 191 gets me to about 180  ( 191-15 = 176 range )
 // Shooting gallary  ~22 is the left of the playfield, ~170 is the bottom ( 187 -22 = 165 range. but would need offset due to border)
 
 

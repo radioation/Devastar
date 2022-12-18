@@ -35,8 +35,8 @@ const int ATARI_PIN_1 = 8;  // stick FWD is the light gun trigger
 const int ATARI_PIN_6 = 9;  // stick trigger and used to set the signal for the light gun
 
 // offsets
-const int minY = 40;  // use 40-237:  40 gives me 17 and 237 gives me 115:  vertical range  197
-const int minX = 21;  // use 21-210:  21 gives me about 88, 210 gives me approx 30: horizontal range 189
+const int minY = 40;  // use 40-230:  40 gives me 17 and 230 gives me 112.    vertical range  190
+const int minX = 21;  // use 21-210:  
 
 
 // input variables
