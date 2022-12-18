@@ -36,13 +36,13 @@ const int STUNNER_PIN_6_TRIGGER = 9;  // TL is the light gun trigger
 const int STUNNER_PIN_5_START = 10;  // TR is the light gun start
 
 // offsets
-const int minY = 40; //   40~ish near top. ~255 is the bottom   (range ~215)
-const int minX = 1;  //  1 is the left? seems odd.  183 is near the right  but disappears past that range ~182)
+const int minY = 40; //   40~ish near top. ~253 is near the bottom   (range ~213)
+const int minX = 1;  //  1 is the left? seems odd.  180 is near the right  but disappears past that range ~181)
 
 
 // input variables
-volatile byte y = 140;  // line count
-volatile byte x = 200;  // Simulate TH delay
+volatile byte y = 120;  // line count
+volatile byte x = 90;  // Simulate TH delay
 byte buttons = 0;
 
 // modified delayMicroseconds to use the smallest possible wait
@@ -79,6 +79,8 @@ void setup() {
   // serial communication
   SERIAL_COM.begin(9600);
 
+  //Serial.begin(9600);
+
   // Sync Splitter
   pinMode(COMPOSITE_SYNC_1881, INPUT);
   pinMode(VERTICAL_SYNC_1881, INPUT);
@@ -96,19 +98,19 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(VERTICAL_SYNC_1881), verticalSyncInterrrupt, RISING);
 }
 
-void loop() {
-  if (SERIAL_COM.available() > 4)
+void loop() { 
+  if (SERIAL_COM.available() > 2)
   {
     x = SERIAL_COM.read();
     y = SERIAL_COM.read();
     buttons = SERIAL_COM.read(); 
     // set buttons
-    if ( buttons & 0x02 ) {
+    if ( buttons & 0x01 ) {
       digitalWrite(STUNNER_PIN_6_TRIGGER, LOW);
     } else {
       digitalWrite(STUNNER_PIN_6_TRIGGER, HIGH);
     }
-    if ( buttons & 0x01 ) {
+    if ( buttons & 0x08 ) {
       digitalWrite(STUNNER_PIN_5_START, LOW);
     } else {
       digitalWrite(STUNNER_PIN_5_START, HIGH);
