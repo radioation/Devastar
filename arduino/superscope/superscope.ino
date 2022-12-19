@@ -14,12 +14,22 @@
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+#define USE_BLUETOOTH_SERIAL
+
+#ifdef USE_BLUETOOTH_SERIAL
+// Leonardo Bluetooth use real TX/TR
+#define SERIAL_COM Serial1
+#else
+// Use USB 
+#define SERIAL_COM Serial
+#endif
+
 
 // sync variables
 const int COMPOSITE_SYNC_1881 = 2;
 const int VERTICAL_SYNC_1881 = 3;
-volatile int verticalLine = 0;  // runnig count
-
+volatile int verticalLine = 0;
+ 
 // controller pins
 const int SUPERSCOPE_PIN_2 = 8;  // External Latch on SNES port
 const int IC4021_START_15 = 9;  // trigger goes to shifter chip pin 15
@@ -27,16 +37,15 @@ const int IC4021_TURBO_14 = 10;  // turbo goes to shifter chip pin 14
 const int IC4021_PAUSE_13 = 11;  //  pause goes to shifter chip pin 13
 const int IC4021_TRIGGER_1 = 12;  // start goes to shifter chip pin 12
 
-  
-// offsets | hard to tell with the calbiration step
-volatile int minY = 0;    // 40 seems to be top of screen?  260 near bottom
-volatile int minX = 0;    // 1 seems to be the left? 181 near right.  
+// offsets
+const int minY = 40; //   40~ish near top. ~260 is the bottom   (range ~220)
+const int minX = 1;  //  1 is the left? seems odd.  183 is near the right  but disappears past that range ~182)
 
 
-volatile short y = 130; //   
-volatile short x = 100; //   
-
-
+// input variables
+volatile byte y = 90;  // line count
+volatile byte x = 100;  // Simulate TH delay
+byte buttons = 0;
 
 // modified delayMicroseconds to use the smallest possible wait
 // to increase horizontal resolution
@@ -52,7 +61,6 @@ void delayX4Cycles(unsigned int c)
   );
 }
 
-
 void compositeSyncInterrrupt() {
   verticalLine++;  
   // apparently we need to have more than one line
@@ -64,18 +72,19 @@ void compositeSyncInterrrupt() {
   }
 }
 
+
 void verticalSyncInterrrupt() {
   verticalLine = 0;
 }
 
 void setup() {
   // serial communication
-  Serial.begin(9600);
+  SERIAL_COM.begin(9600);
 
   // Sync Splitter
   pinMode(COMPOSITE_SYNC_1881, INPUT);
   pinMode(VERTICAL_SYNC_1881, INPUT);
- 
+
   // controller pins 
   pinMode(SUPERSCOPE_PIN_2, OUTPUT);
   pinMode(IC4021_TRIGGER_1, OUTPUT);
@@ -93,81 +102,38 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(VERTICAL_SYNC_1881), verticalSyncInterrrupt, RISING);
 }
 
-void loop() { 
-  
-  //Serial.println(verticalLine);
-  
-  if (Serial.available()){
-    char val = Serial.read(); // Read a character
-    switch(val) {
-      case 'w':  // up
-        y--;
-        break;
-      case 'a':  // left
-        x--;
-        break;
-      case 's':  // down
-        y++;
-        break;
-      case 'd':  // right
-        x++;
-        break;
-      case 'W':   // up by ten
-        y -=10;
-        break;
-      case 'A':    // left by ten
-        x -= 10;  
-        break;
-      case 'S':   // down by ten
-        y += 10;  
-        break;
-      case 'D':  // right by ten
-        x += 10;
-        break;
-      case 'q':     // Trigger button
-        Serial.println((String)"Trigger x:"+x+" y:"+y); 
-        digitalWrite(IC4021_TRIGGER_1, LOW); 
-        delay(150);
-        digitalWrite(IC4021_TRIGGER_1, HIGH);  
-        break; 
-      case 'e':     // Start
-        Serial.print("Start\n");
-        digitalWrite(IC4021_START_15, LOW); 
-        delay(150);
-        digitalWrite(IC4021_START_15, HIGH);   
-        break; 
-      case 'z':     // Turbo
-        Serial.print("Turbo\n");
-        digitalWrite(IC4021_TURBO_14, LOW); 
-        delay(150);
-        digitalWrite(IC4021_TURBO_14, HIGH);  
-        break; 
-      case 'c':     // Pause
-        Serial.print("Pause\n");
-        digitalWrite(IC4021_PAUSE_13, LOW); 
-        delay(150);
-        digitalWrite(IC4021_PAUSE_13, HIGH);   
-        break; 
-      case 't':
-        y = 40;  // move to the top
-        break;
-      case 'r':  // move to the right
-        x = 183;
-        break;
-      case 'b':  // move to the bottom
-        y = 250;
-        break;
-      case 'l':  // move to the left
-        x = 1;
-        break; 
-      case 'm':  // move to the middle
-        x = 100;
-        y = 155;
-        break;
-      case 'o': // point offscreen 
-        y = 100;
-        x = 0;
-        break; 
+void loop() {
+  if (SERIAL_COM.available() > 2)
+  {
+    x = SERIAL_COM.read();
+    y = SERIAL_COM.read();
+    buttons = SERIAL_COM.read(); 
+    // set buttons
+    if ( buttons & 0x02 ) {
+      digitalWrite(IC4021_TRIGGER_1, LOW);
+    } else {
+      digitalWrite(IC4021_TRIGGER_1, HIGH);
+    }
+    if ( buttons & 0x01 ) {
+      digitalWrite(IC4021_PAUSE_13, LOW);
+    } else {
+      digitalWrite(IC4021_PAUSE_13, HIGH);
+    }
+    if ( buttons & 0x04 ) {
+      digitalWrite(IC4021_PAUSE_13, LOW);
+    } else {
+      digitalWrite(IC4021_PAUSE_13, HIGH);
+    }
+    if ( buttons & 0x08 ) {
+      digitalWrite(IC4021_START_15, LOW);
+    } else {
+      digitalWrite(IC4021_START_15, HIGH);
     }
   }
+    if ( buttons & 0x16 ) {
+      digitalWrite(IC4021_TURBO_14, LOW);
+    } else {
+      digitalWrite(IC4021_TURBO_14, HIGH);
+    }
+
 }
