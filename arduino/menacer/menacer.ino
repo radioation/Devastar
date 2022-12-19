@@ -77,42 +77,42 @@ void verticalSyncInterrrupt() {
   verticalLine = 0;
 }
 
-void TLInterrupt() {
-  int tlState = digitalRead(TL_PIN);
+// void TLInterrupt() {
+//   int tlState = digitalRead(TL_PIN);
 
-  if ( tlState == LOW ) {
-    // faling edge, so deactivate all of the buttons, but leave TH ( PB0 ) alone
-    // PB5 - B
-    // PB6 - A/Trigger
-    // PB7 - C
-    // PD6 - Start
-    PORTB = PORTB & B00011111;
-    PORTD = PORTD & B10111111;
+//   if ( tlState == LOW ) {
+//     // faling edge, so deactivate all of the buttons, but leave TH ( PB0 ) alone
+//     // PB5 - B
+//     // PB6 - A/Trigger
+//     // PB7 - C
+//     // PD6 - Start
+//     PORTB = PORTB & B00011111;
+//     PORTD = PORTD & B10111111;
 
-  } else {
-    // rising edge, set the buttons as needed.
-    byte pb = PORTB;
-    // TODO: May make more sense to set PB* bits in Raspberry PI properly.
-    if ( buttons & 0x01 ) {
-      // A - trigger
-      pb = pb | B01000000;
-    }
-    if ( buttons & 0x02 ) {
-      // B
-      pb = pb | B00100000;
+//   } else {
+//     // rising edge, set the buttons as needed.
+//     byte pb = PORTB;
+//     // TODO: May make more sense to set PB* bits in Raspberry PI properly.
+//     if ( buttons & 0x01 ) {    
+//       // A
+//       pb = pb | B01000000;
+//     }
+//     if ( buttons & 0x02 ) {      
+//       // 
+//       pb = pb | B00100000;
 
-    }
-    if ( buttons & 0x04 ) {
-      // C
-      pb = pb| B10000000;
-    }
-    if ( buttons & 0x08) {
-      // S 
-      PORTD = PORTD | B01000000;
-    }
-    PORTB = PORTB | pb; // port b
-  }
-}
+//     }
+//     if ( buttons & 0x04 ) {
+//       // C
+//       pb = pb| B10000000;
+//     }
+//     if ( buttons & 0x08) {
+//       // S 
+//       PORTD = PORTD | B01000000;
+//     }
+//     PORTB = PORTB | pb; // port b
+//   }
+// }
 
 
 void setup() {
@@ -142,7 +142,7 @@ void setup() {
   // Setup Interrupts
   attachInterrupt(digitalPinToInterrupt(COMPOSITE_SYNC_1881), compositeSyncInterrrupt, RISING);
   attachInterrupt(digitalPinToInterrupt(VERTICAL_SYNC_1881), verticalSyncInterrrupt, RISING);
-  attachInterrupt(digitalPinToInterrupt(TL_PIN), TLInterrupt, CHANGE); // PIN 7 interrupt requires leonardo (or equiv)
+  //attachInterrupt(digitalPinToInterrupt(TL_PIN), TLInterrupt, CHANGE); // PIN 7 interrupt requires leonardo (or equiv)
 }
 
 void loop() {
@@ -155,10 +155,29 @@ void loop() {
     buttons = SERIAL_COM.read();
     // buttons = 1;
     //  Serial.println((String)"SERIAL_COM.available():" + SERIAL_COM.available()); 
-  } 
- 
-
   
+ 
+    if ( buttons & 0x01 ) {
+      digitalWrite(A_PIN, HIGH);  
+    } else {
+      digitalWrite(A_PIN, LOW);
+    }
+    if ( buttons & 0x02 ) {
+      digitalWrite(B_PIN, HIGH);   
+    } else {
+      digitalWrite(B_PIN, LOW);
+    }
+    if ( buttons & 0x04 ) {
+      digitalWrite(C_PIN, HIGH);  
+    } else {
+      digitalWrite(C_PIN, LOW);
+    }
+    if ( buttons & 0x08 ) {
+      digitalWrite(S_PIN, HIGH);   
+    } else {
+      digitalWrite(S_PIN, LOW);
+    }
+  }    
  
 }
 

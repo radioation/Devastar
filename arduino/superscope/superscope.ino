@@ -29,19 +29,22 @@
 const int COMPOSITE_SYNC_1881 = 2;
 const int VERTICAL_SYNC_1881 = 3;
 volatile int verticalLine = 0;
-
+ 
 // controller pins
-const int ATARI_PIN_1 = 8;  // stick FWD is the light gun trigger
-const int ATARI_PIN_6 = 9;  // stick trigger and used to set the signal for the light gun
+const int SUPERSCOPE_PIN_2 = 8;  // External Latch on SNES port
+const int IC4021_START_15 = 9;  // trigger goes to shifter chip pin 15
+const int IC4021_TURBO_14 = 10;  // turbo goes to shifter chip pin 14
+const int IC4021_PAUSE_13 = 11;  //  pause goes to shifter chip pin 13
+const int IC4021_TRIGGER_1 = 12;  // start goes to shifter chip pin 12
 
 // offsets
-const int minY = 40;  // use 40-230:  40 gives me 17 and 230 gives me 112.    vertical range  190
-const int minX = 21;  // use 21-210:  
+const int minY = 40; //   40~ish near top. ~260 is the bottom   (range ~220)
+const int minX = 1;  //  1 is the left? seems odd.  183 is near the right  but disappears past that range ~182)
 
 
 // input variables
-byte y = 140;  // line count
-byte x = 200;  // Simulate TH delay
+volatile byte y = 90;  // line count
+volatile byte x = 100;  // Simulate TH delay
 byte buttons = 0;
 
 // modified delayMicroseconds to use the smallest possible wait
@@ -59,12 +62,13 @@ void delayX4Cycles(unsigned int c)
 }
 
 void compositeSyncInterrrupt() {
-  verticalLine++;
-  if ( verticalLine == minY + y ) { // && x != 255 ) {
+  verticalLine++;  
+  // apparently we need to have more than one line
+  if ( verticalLine >= minY + y && verticalLine < minY + y + 8 ) {  
     delayX4Cycles(minX + x);
-    digitalWrite( ATARI_PIN_6, LOW );
-    delayMicroseconds( 5 ); // arbitrary.
-    digitalWrite( ATARI_PIN_6, HIGH );
+    digitalWrite( SUPERSCOPE_PIN_2, LOW ); // TH active is 0
+    delayMicroseconds( 4 ); // arbitrary.
+    digitalWrite( SUPERSCOPE_PIN_2, HIGH );
   }
 }
 
@@ -82,10 +86,16 @@ void setup() {
   pinMode(VERTICAL_SYNC_1881, INPUT);
 
   // controller pins 
-  pinMode(ATARI_PIN_1, OUTPUT);
-  pinMode(ATARI_PIN_6, OUTPUT); 
-  digitalWrite(ATARI_PIN_1, HIGH);
-  digitalWrite(ATARI_PIN_6, HIGH);
+  pinMode(SUPERSCOPE_PIN_2, OUTPUT);
+  pinMode(IC4021_TRIGGER_1, OUTPUT);
+  pinMode(IC4021_TURBO_14, OUTPUT); 
+  pinMode(IC4021_PAUSE_13, OUTPUT);
+  pinMode(IC4021_START_15, OUTPUT); 
+  digitalWrite(SUPERSCOPE_PIN_2, HIGH);
+  digitalWrite(IC4021_TRIGGER_1, HIGH);
+  digitalWrite(IC4021_TURBO_14, HIGH);
+  digitalWrite(IC4021_PAUSE_13, HIGH);
+  digitalWrite(IC4021_START_15, HIGH);
 
   // interrupts
   attachInterrupt(digitalPinToInterrupt(COMPOSITE_SYNC_1881), compositeSyncInterrrupt, RISING);
@@ -99,12 +109,31 @@ void loop() {
     y = SERIAL_COM.read();
     buttons = SERIAL_COM.read(); 
     // set buttons
-    if ( buttons & 0x01 ) {
-      digitalWrite(ATARI_PIN_1, LOW);
+    if ( buttons & 0x02 ) {
+      digitalWrite(IC4021_TRIGGER_1, LOW);
     } else {
-      digitalWrite(ATARI_PIN_1, HIGH);
+      digitalWrite(IC4021_TRIGGER_1, HIGH);
     }
-
+    if ( buttons & 0x01 ) {
+      digitalWrite(IC4021_PAUSE_13, LOW);
+    } else {
+      digitalWrite(IC4021_PAUSE_13, HIGH);
+    }
+    if ( buttons & 0x04 ) {
+      digitalWrite(IC4021_PAUSE_13, LOW);
+    } else {
+      digitalWrite(IC4021_PAUSE_13, HIGH);
+    }
+    if ( buttons & 0x08 ) {
+      digitalWrite(IC4021_START_15, LOW);
+    } else {
+      digitalWrite(IC4021_START_15, HIGH);
+    }
   }
+    if ( buttons & 0x16 ) {
+      digitalWrite(IC4021_TURBO_14, LOW);
+    } else {
+      digitalWrite(IC4021_TURBO_14, HIGH);
+    }
 
 }

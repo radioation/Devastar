@@ -28,9 +28,10 @@ const int IC4021_PAUSE_13 = 11;  //  pause goes to shifter chip pin 13
 const int IC4021_TRIGGER_1 = 12;  // start goes to shifter chip pin 12
 
   
-// offsets
-volatile int minY = 0;
-volatile int minX = 0; 
+// offsets | hard to tell with the calbiration step
+volatile int minY = 0;    // 40 seems to be top of screen?  260 near bottom
+volatile int minX = 0;    // 1 seems to be the left? 181 near right.  
+
 
 volatile short y = 130; //   
 volatile short x = 100; //   

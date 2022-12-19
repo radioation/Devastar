@@ -29,19 +29,20 @@
 const int COMPOSITE_SYNC_1881 = 2;
 const int VERTICAL_SYNC_1881 = 3;
 volatile int verticalLine = 0;
-
+ 
 // controller pins
-const int ATARI_PIN_1 = 8;  // stick FWD is the light gun trigger
-const int ATARI_PIN_6 = 9;  // stick trigger and used to set the signal for the light gun
+const int STUNNER_PIN_4 = 8;  // TH and used to set the signal for the light gun
+const int STUNNER_PIN_6_TRIGGER = 9;  // TL is the light gun trigger
+const int STUNNER_PIN_5_START = 10;  // TR is the light gun start
 
 // offsets
-const int minY = 40;  // use 40-230:  40 gives me 17 and 230 gives me 112.    vertical range  190
-const int minX = 21;  // use 21-210:  
+const int minY = 40; //   40~ish near top. ~253 is near the bottom   (range ~213)
+const int minX = 1;  //  1 is the left? seems odd.  180 is near the right  but disappears past that range ~181)
 
 
 // input variables
-byte y = 140;  // line count
-byte x = 200;  // Simulate TH delay
+volatile byte y = 120;  // line count
+volatile byte x = 90;  // Simulate TH delay
 byte buttons = 0;
 
 // modified delayMicroseconds to use the smallest possible wait
@@ -59,12 +60,13 @@ void delayX4Cycles(unsigned int c)
 }
 
 void compositeSyncInterrrupt() {
-  verticalLine++;
-  if ( verticalLine == minY + y ) { // && x != 255 ) {
+  verticalLine++;  
+  // apparently we need to have more than one line
+  if ( verticalLine >= minY + y && verticalLine < minY + y + 8 ) {  
     delayX4Cycles(minX + x);
-    digitalWrite( ATARI_PIN_6, LOW );
-    delayMicroseconds( 5 ); // arbitrary.
-    digitalWrite( ATARI_PIN_6, HIGH );
+    digitalWrite( STUNNER_PIN_4, LOW ); // TH active is 0
+    delayMicroseconds( 4 ); // arbitrary.
+    digitalWrite( STUNNER_PIN_4, HIGH );
   }
 }
 
@@ -77,22 +79,26 @@ void setup() {
   // serial communication
   SERIAL_COM.begin(9600);
 
+  //Serial.begin(9600);
+
   // Sync Splitter
   pinMode(COMPOSITE_SYNC_1881, INPUT);
   pinMode(VERTICAL_SYNC_1881, INPUT);
 
   // controller pins 
-  pinMode(ATARI_PIN_1, OUTPUT);
-  pinMode(ATARI_PIN_6, OUTPUT); 
-  digitalWrite(ATARI_PIN_1, HIGH);
-  digitalWrite(ATARI_PIN_6, HIGH);
+  pinMode(STUNNER_PIN_4, OUTPUT);
+  pinMode(STUNNER_PIN_5_START, OUTPUT);
+  pinMode(STUNNER_PIN_6_TRIGGER, OUTPUT); 
+  digitalWrite(STUNNER_PIN_4, HIGH);
+  digitalWrite(STUNNER_PIN_5_START, HIGH);
+  digitalWrite(STUNNER_PIN_6_TRIGGER, HIGH);
 
   // interrupts
   attachInterrupt(digitalPinToInterrupt(COMPOSITE_SYNC_1881), compositeSyncInterrrupt, RISING);
   attachInterrupt(digitalPinToInterrupt(VERTICAL_SYNC_1881), verticalSyncInterrrupt, RISING);
 }
 
-void loop() {
+void loop() { 
   if (SERIAL_COM.available() > 2)
   {
     x = SERIAL_COM.read();
@@ -100,11 +106,15 @@ void loop() {
     buttons = SERIAL_COM.read(); 
     // set buttons
     if ( buttons & 0x01 ) {
-      digitalWrite(ATARI_PIN_1, LOW);
+      digitalWrite(STUNNER_PIN_6_TRIGGER, LOW);
     } else {
-      digitalWrite(ATARI_PIN_1, HIGH);
+      digitalWrite(STUNNER_PIN_6_TRIGGER, HIGH);
     }
-
+    if ( buttons & 0x08 ) {
+      digitalWrite(STUNNER_PIN_5_START, LOW);
+    } else {
+      digitalWrite(STUNNER_PIN_5_START, HIGH);
+    }
   }
 
 }

@@ -1,36 +1,21 @@
 #include <genesis.h>
 #include "resources.h"
 
-u16 crosshairsMode = 0; // 0 raw values, 1 use X lookup
+
 static fix32 xLookup[256]; // full range for JOY_readJoypadX()
 
-static void calculateXLookup()
-{
-	// My SMS Phaser appears to return 30 through 180 when I pan
-	// across my TV screen in H32 mode.   so about 150 values over 320 pixels
-	fix32 pos = FIX32(0);
-	for (int i = 30; i < 180; ++i)
-	{
-		xLookup[i] = pos;
-		pos = fix32Add(pos, FIX32(2.13333));
-	}
+static void calculateXLookup() {
+  // My blue justifier appears to return 34 through 176 when I pan 
+	// across my TV screen in H32 mode.  So about 142 values.
+
+  fix32 pos = FIX32(0);
+  for( int i=34; i < 176; ++i ) {
+    xLookup[i] =  pos;
+    pos = fix32Add( pos, FIX32(2.25) );
+  }
+
 }
 
-static void joypadHandler(u16 joypadId, u16 changed, u16 joypadState)
-{
-	// standard controller handles modes
-	if (joypadId == JOY_1)
-	{
-		if (changed == BUTTON_A && joypadState == BUTTON_A)
-		{
-			++crosshairsMode;
-			if (crosshairsMode > 1)
-			{
-				crosshairsMode = 0;
-			}
-		}
-	}
-}
 
 int main()
 {
@@ -76,22 +61,30 @@ int main()
 	SPR_setPosition( targetSprite, fix32ToInt( targetPosX ), fix32ToInt( targetPosY ) );
 
 	///////////////////////////////////////////////////////////////////////////////////
-	// Phaser Setup
+	// Justifier Setup
 	// create lookup table
 	calculateXLookup();	
 
 	// Set background brighter than 0.	darker backgrounds
-	// prevent Phaser from returning X, Y values.
+	// prevent Justifier from returning X, Y values.
 	PAL_setColor(15, 0x0000);
 	VDP_setTextPalette(0);
-	PAL_setColor(0, RGB24_TO_VDPCOLOR(0x44aaff)); // seems to work OK
+	PAL_setColor(0, RGB24_TO_VDPCOLOR(0x4488ff)); // seems to work OK
 
-	// Can't check for phaser with JOY_getPortType().  Just assume we've got a Phaser attached to Port 2
-	JOY_setSupport(PORT_2, JOY_SUPPORT_PHASER);
+	// check Port 2 for the Konami Justifier
+	bool justifierFound = FALSE;
+	u8 portType = JOY_getPortType(PORT_2);
+	if(portType == PORT_TYPE_JUSTIFIER )
+	{
+		JOY_setSupport(PORT_2, JOY_SUPPORT_JUSTIFIER_BLUE );
+		justifierFound = TRUE;
+		VDP_drawText("Justifier FOUND!", 11, 2);
+	} else {
+		VDP_drawText("Justifier NOT found.", 10, 2);
+	}
 
 	///////////////////////////////////////////////////////////////////////////////////
 	// Draw text
-	VDP_drawText("Press A to change drawing mode", 5, 5);
 	char message[40];
 	// use intToStr() to print row numbers
 	for( s32 i=0; i < 28; ++i ) {
@@ -114,47 +107,37 @@ int main()
 		}
 	}
 
-	// Asynchronous joystick handler.
-	JOY_setEventHandler(joypadHandler);
 
 	///////////////////////////////////////////////////////////////////////////////////
 	// Main Loop!
 	while (TRUE)
 	{
-		// get the Phaser trigger state
-		u16 value = JOY_readJoypad(JOY_2);
-		if (value & BUTTON_A)
-		{
-			VDP_drawText("A: ON", 18, 9);
-		}
-		else
-		{
-			VDP_drawText("A:   ", 18, 9);
-		}
+		if( justifierFound ) {
 
-		// H32 mode.
-		// if both values are -1, the gun is aiming off screen.
-		s16 xVal = JOY_readJoypadX(JOY_2);
-		s16 yVal = JOY_readJoypadY(JOY_2);
-		char message[40];
-		sprintf(message, "Phaser Values x:%d, y:%d      ", xVal, yVal);
-		VDP_drawText(message, 7, 7);
-
-		// set crosshairs position. Subtract 8 from each to compensate for 16x16 sprite
-		switch (crosshairsMode)
-		{
-		case 0: // raw
-			VDP_drawText("   Render raw joypad values   ", 5, 5);
-			crosshairsPosX = fix32Mul(FIX32(xVal), FIX32(2.52));
-			crosshairsPosY = FIX32(yVal - 8);
-			break;
-		case 1: // with lookup
-			VDP_drawText("   Render with lookup table   ", 5, 5);
+			// get the Justifier trigger state
+			u16 value = JOY_readJoypad(JOY_2);
+			if (value & BUTTON_A)
+			{
+				VDP_drawText("A: ON", 18, 9);
+			}
+			else
+			{
+				VDP_drawText("A:   ", 18, 9);
+			}
+  
+  
+			// My blue justifier appears to return 34 through 176 when I use it on 
+			// H32 mode.
+			// if both values are -1, the gun is aiming off screen.
+			s16 xVal = JOY_readJoypadX(JOY_2);
+			s16 yVal = JOY_readJoypadY(JOY_2);
+			char message[40];
+			sprintf(message, "Justifier Values x:%d, y:%d      ", xVal, yVal);
+			VDP_drawText(message, 7, 7);
+  
+			// Render with lookup table
 			crosshairsPosX = fix32Sub(xLookup[xVal], FIX32(8));
 			crosshairsPosY = fix32Sub(FIX32(yVal), FIX32(8));
-			break;
-		default:
-			break;
 		}
 
 		// Set the Sprite Positions.

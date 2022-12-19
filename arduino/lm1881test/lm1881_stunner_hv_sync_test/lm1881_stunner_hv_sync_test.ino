@@ -31,7 +31,7 @@ volatile int minY = 0;
 volatile int minX = 0; 
 
 volatile short y = 260; //   40~ish near top. ~255 is the bottom
-volatile short x = 100; //  1 is the left? seems odd.  185 is the right (disappears, need to look into faster uController)
+volatile short x = 100; //  1 is the left? seems odd.  181~ish is the right (disappears, need to look into faster uController)
 
 
 
@@ -133,7 +133,7 @@ void loop() {
         y = 40;  // move to the top
         break;
       case 'r':  // move to the right
-        x = 183;
+        x = 180;
         break;
       case 'b':  // move to the bottom
         y = 250;
