@@ -3,10 +3,10 @@
 serial_device: /dev/rfcomm0
 ir_width: 510
 ir_height: 260
-output_width: 176
-output_height: 223
-output_x_min: 24
-output_y_min: 15
+output_width: 197
+output_height: 189
+output_x_min: 40
+output_y_min: 21
 min_blob_size: 1.75
 max_blob_size: 250.0
 ir_threshold: 100.0
