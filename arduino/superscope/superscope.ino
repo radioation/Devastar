@@ -35,7 +35,7 @@ const int SUPERSCOPE_PIN_2 = 8;  // External Latch on SNES port
 const int IC4021_START_15 = 9;  // trigger goes to shifter chip pin 15
 const int IC4021_TURBO_14 = 10;  // turbo goes to shifter chip pin 14
 const int IC4021_PAUSE_13 = 11;  //  pause goes to shifter chip pin 13
-const int IC4021_TRIGGER_1 = 12;  // start goes to shifter chip pin 12
+const int IC4021_TRIGGER_12 = 12;  // start goes to shifter chip pin 12
 
 // offsets
 const int minY = 40; //   40~ish near top. ~260 is the bottom   (range ~220)
@@ -87,12 +87,12 @@ void setup() {
 
   // controller pins 
   pinMode(SUPERSCOPE_PIN_2, OUTPUT);
-  pinMode(IC4021_TRIGGER_1, OUTPUT);
+  pinMode(IC4021_TRIGGER_12, OUTPUT);
   pinMode(IC4021_TURBO_14, OUTPUT); 
   pinMode(IC4021_PAUSE_13, OUTPUT);
   pinMode(IC4021_START_15, OUTPUT); 
   digitalWrite(SUPERSCOPE_PIN_2, HIGH);
-  digitalWrite(IC4021_TRIGGER_1, HIGH);
+  digitalWrite(IC4021_TRIGGER_12, HIGH);
   digitalWrite(IC4021_TURBO_14, HIGH);
   digitalWrite(IC4021_PAUSE_13, HIGH);
   digitalWrite(IC4021_START_15, HIGH);
@@ -109,12 +109,12 @@ void loop() {
     y = SERIAL_COM.read();
     buttons = SERIAL_COM.read(); 
     // set buttons
-    if ( buttons & 0x02 ) {
-      digitalWrite(IC4021_TRIGGER_1, LOW);
-    } else {
-      digitalWrite(IC4021_TRIGGER_1, HIGH);
-    }
     if ( buttons & 0x01 ) {
+      digitalWrite(IC4021_TRIGGER_12, LOW);
+    } else {
+      digitalWrite(IC4021_TRIGGER_12, HIGH);
+    }
+    if ( buttons & 0x02 ) {
       digitalWrite(IC4021_PAUSE_13, LOW);
     } else {
       digitalWrite(IC4021_PAUSE_13, HIGH);
@@ -130,7 +130,7 @@ void loop() {
       digitalWrite(IC4021_START_15, HIGH);
     }
   }
-    if ( buttons & 0x16 ) {
+    if ( buttons & 0x10 ) {
       digitalWrite(IC4021_TURBO_14, LOW);
     } else {
       digitalWrite(IC4021_TURBO_14, HIGH);
