@@ -2,6 +2,10 @@
 This project started as an attempt to create a flat-screen light-gun to work with a Sega Menacer game
 I've been (*slowly*) writing.  I've since expanded it to work with other console and games.
 
+This is still pretty early in develppment.  I'm not currently happy with the latency
+and I think I can simplify the hardware side by moving to a different microcontroller. 
+I expect many changes to occur before I make an official release.
+
 **IMPORTANT:**  The circuits in this project are experimental.
 I am *not* a practicing electrical engineer. The circuit diagrams here are what 
 I've tested on my video game consoles.  The circuits work for me, but I'm not 
@@ -17,10 +21,11 @@ that may damage a console.  **USE THIS PROJECT AT YOUR OWN RISK**
 ## Sega Light Phaser (SMS) Receiver
 [![IR Phaser](https://img.youtube.com/vi/S2LcZB0aXFM/0.jpg)](https://www.youtube.com/watch?v=S2LcZB0aXFM)
 ## Sega Stunner (Saturn)  Receiver
-[![Saturn/Virtua Gun backend](https://img.youtube.com/vi/H4ljcguIE-E/0.jpg)](https://www.youtube.com/watch?v=H4ljcguIE-E)
+[![Saturn/Virtua Gun backend](https://img.youtube.com/vi/gwXiiACAVe0/0.jpg)](https://www.youtube.com/watch?v=gwXiiACAVe0)
 ## Nintendo SuperScope (SNES) Receiver
-[![Saturn/Virtua Gun backend](https://img.youtube.com/vi/g_7rVOUvzBE/0.jpg)](https://www.youtube.com/watch?v=g_7rVOUvzBE)
-
+[![SuperScope Video](https://img.youtube.com/vi/DQ6kFDOmEEY/0.jpg)](https://www.youtube.com/watch?v=DQ6kFDOmEEY)
+## USB Mouse
+[![USB Mouse Video](https://img.youtube.com/vi/n-yAgbNGrXw/0.jpg)](https://www.youtube.com/watch?v=n-yAgbNGrXw)
 
 # License 
 Most of the code I write are MIT licensed.  The Arduino files are LGPL.
