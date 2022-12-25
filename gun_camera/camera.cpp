@@ -23,10 +23,10 @@
 #define BUFFER_SIZE 64
 #define BAUDRATE B38400            
 
-//#define SHOW_IMAGE
+#define SHOW_IMAGE
 //#define SHOW_3D
 //#define SHOW_CALC
-//#define SHOW_TIME
+#define SHOW_TIME
 
 
 #include <filesystem>
@@ -296,6 +296,9 @@ int main(int argc, char* argv[] )
   worldPoints.push_back(cv::Point3f(conf.irWidth, 0, 0));
   worldPoints.push_back(cv::Point3f(0, conf.irHeight, 0));
   worldPoints.push_back(cv::Point3f(conf.irWidth, conf.irHeight, 0));
+
+	
+
   // setup rectangle for intersection test
   cv::Vec3f S1, S2, P0;
   P0[0] = worldPoints[0].x;
@@ -354,6 +357,11 @@ int main(int argc, char* argv[] )
   cv::Mat thresh;
   cv::Mat displayCopy;
 
+	// screen center point
+  std::vector<cv::Point2f> srcPoints(1);
+  srcPoints[0].x = float(frameWidth/2);
+  srcPoints[0].y = float(frameHeight/2);
+	
   // setup output
   unsigned char offscreen[] = { 0xFF, 0xFF, 0x00 };
   //unsigned char offscreen16[] = { 0xFF, 0xFF, 0xFF, 0xFF, 0x00 };
@@ -480,7 +488,8 @@ int main(int argc, char* argv[] )
         }
       }
 
-      // only calculate hit if count is 4
+      // only calculate hit if count is 4 (could potentially also check if "n >= 4", but 
+      // use simplest case for now.
       if( centerCount == 4 ) {
 #ifdef SHOW_TIME
         endTime = std::chrono::steady_clock::now();
@@ -594,12 +603,22 @@ int main(int argc, char* argv[] )
         cv::Mat rvec, tvec;
         std::vector< cv::Mat > rvecs, tvecs;	
 
-#ifdef SHOW_CALC
+//#ifdef SHOW_CALC
         std::vector<cv::Vec3d> rvecsVec, tvecsVec;
+#ifdef SHOW_TIME
+        startTime = std::chrono::steady_clock::now();
+#endif
         solvePnPGeneric(worldPoints, centers, cameraMatrix, distCoeffs, rvecsVec, tvecsVec, false, cv::SOLVEPNP_AP3P);
+#ifdef SHOW_TIME
+        endTime = std::chrono::steady_clock::now();
+        std::cout << "ELAPSED TIME>> solvePnPGeneric(): " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
+#endif
         std::cout << "rvecsVec.size() : " << rvecsVec.size() << std::endl; 
         for( int vecIter=0; vecIter < rvecsVec.size(); ++ vecIter ) {
-          std::cout << "GENERIC RVEC: " << rvecsVec[vecIter] << " " << ticks << std::endl;
+#ifdef SHOW_TIME
+        startTime = std::chrono::steady_clock::now();
+#endif
+          //std::cout << "GENERIC RVEC: " << rvecsVec[vecIter] << " " << ticks << std::endl;
           cv::Mat R;
           cv::Rodrigues(rvecsVec[vecIter], R); // get rotation matrix R ( 3x3 ) from rotation vector 
           R = R.t(); // inverse
@@ -614,14 +633,53 @@ int main(int argc, char* argv[] )
           D[0] = R.at<double>(0, 2);
           D[1] = R.at<double>(1, 2);
           D[2] = R.at<double>(2, 2);
-          std::cout << "  GENERIC Ray0: " << Ray0 << std::endl;
-          std::cout << "  GENERIC D: " << D << std::endl;
+          //std::cout << "  GENERIC Ray0: " << Ray0 << std::endl;
+          //std::cout << "  GENERIC D: " << D << std::endl;
           float u,v;
           computeUV(Ray0, D, P0, S1, S2, conf.irWidth, conf.irHeight, u, v);
-          std::cout << "  GENERIC U: " << u << " V: " << v << std::endl;
+          //std::cout << "  GENERIC U: " << u << " V: " << v << std::endl;
 
-        }
+#ifdef SHOW_TIME
+        endTime = std::chrono::steady_clock::now();
+        std::cout << "ELAPSED TIME>> solvePnPGeneric compute R/tvec and UV: " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
+        std::cout << "  GENERIC U: " << u << " V: " << v << std::endl;
 #endif
+        }
+//#endif
+
+
+    std::vector<cv::Point2f> targetVertices =  {
+        cv::Point(0, 0), 
+				cv::Point(conf.irWidth - 1, 0),
+        cv::Point(0, conf.irHeight - 1),
+        cv::Point(conf.irWidth - 1, conf.irHeight - 1)
+    };
+#ifdef SHOW_TIME
+        startTime = std::chrono::steady_clock::now();
+#endif
+    cv::Mat rotationMatrix = getPerspectiveTransform(centers, targetVertices);
+#ifdef SHOW_TIME
+        endTime = std::chrono::steady_clock::now();
+        std::cout << "ELAPSED TIME>> solve getPerspectiveTransform(): " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
+#endif
+	std::cout << "centers[0]: " << centers[0] << std::endl;
+	std::cout << "centers[1]: " << centers[1] << std::endl;
+	std::cout << "centers[2]: " << centers[2] << std::endl;
+	std::cout << "centers[3]: " << centers[3] << std::endl;
+	std::cout << "srcPoints[0]: " << srcPoints[0] << std::endl;
+#ifdef SHOW_TIME
+        startTime = std::chrono::steady_clock::now();
+#endif
+  	std::vector<cv::Point2f> dstCenters;
+	cv::perspectiveTransform(	srcPoints, dstCenters, rotationMatrix);
+#ifdef SHOW_TIME
+        endTime = std::chrono::steady_clock::now();
+        std::cout << "ELAPSED TIME>> solve perspectiveTransform(): " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
+        std::cout << "  dstCenters[0]" << dstCenters[0] <<std::endl;
+#endif
+
+
+
 
 #ifdef SHOW_TIME
         startTime = std::chrono::steady_clock::now();
@@ -629,11 +687,14 @@ int main(int argc, char* argv[] )
         solveRet = cv::solvePnP(worldPoints, centers, cameraMatrix, distCoeffs, rvec, tvec, false, cv::SOLVEPNP_AP3P);
 #ifdef SHOW_TIME
         endTime = std::chrono::steady_clock::now();
-        std::cout << "ELAPSED TIME>> solvePnP(): " << std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count() << "\n"; 
+        std::cout << "ELAPSED TIME>> solvePnP(): " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
 #endif
         bool hit = false;
         if( solveRet ) {
 
+#ifdef SHOW_TIME
+          startTime = std::chrono::steady_clock::now();
+#endif
           cv::Mat R;
           cv::Rodrigues(rvec, R); // get rotation matrix R ( 3x3 ) from rotation vector 
           R = R.t(); // inverse
@@ -649,14 +710,12 @@ int main(int argc, char* argv[] )
           D[1] = R.at<double>(1, 2);
           D[2] = R.at<double>(2, 2);
 
-#ifdef SHOW_TIME
-          startTime = std::chrono::steady_clock::now();
-#endif
           //hit = intersectRect(Ray0, D, P0, S1, S2, irWidth, irHeight, u, v);
           computeUV(Ray0, D, P0, S1, S2, conf.irWidth, conf.irHeight, u, v);
 #ifdef SHOW_TIME
           endTime = std::chrono::steady_clock::now();
-          std::cout << "ELAPSED TIME>> intersectRect(): " << std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count() << "\n"; 
+          std::cout << "ELAPSED TIME>>  R/tvec and computeUV(): " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
+        std::cout << " AP3P  U: " << u << " V: " << v << std::endl;
 #endif
 
 
@@ -687,6 +746,7 @@ int main(int argc, char* argv[] )
             pt.x = (u/conf.irWidth) * float(frameWidth);
             pt.y = (v/conf.irHeight) * float(frameHeight); 
             cv::circle( displayCopy, pt, 5.0f, cv::Scalar(0,255,255), 3.0f);
+            cv::circle( displayCopy, dstCenters[0], 5.0f, cv::Scalar(255,0,255), 3.0f);
             cv::imshow("points", displayCopy );
             cv::waitKey(1);
 #endif
