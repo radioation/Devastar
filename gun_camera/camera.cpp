@@ -294,6 +294,8 @@ int main(int argc, char* argv[] )
   cv::Mat gray;
   cv::Mat thresh;
   cv::Mat displayCopy;
+  std::vector<cv::Point2f> undistortCenters;
+  undistortCenters.resize(4);
 
   // screen center point
   std::vector<cv::Point2f> srcPoints(1);
@@ -541,12 +543,14 @@ int main(int argc, char* argv[] )
         // tvec- is the translation vector 
         float u,v;
         if(conf.usePerspectiveIntersection ) {
+	  cv::undistortPoints( centers, undistortCenters, cameraMatrix, distCoeffs );
           getPerspectiveIntersection( centers, targetVertices, srcPoints, u, v );
           solveRet = true;
         } else  {
 
           cv::Mat rvec, tvec;
           std::vector< cv::Mat > rvecs, tvecs;	
+	  solveRet = getPnPIntersection( worldPoints, centers, cameraMatrix, distCoeffs, P0, S1, S2, conf.irWidth, conf.irHeight, u, v);
 #ifdef SHOW_3D
           update3d( tvec, R, u, v );
 #endif
