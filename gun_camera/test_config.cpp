@@ -20,6 +20,7 @@ int main(int argc, char* argv[] )
   double min_blob_size = 2.75;
   double max_blob_size = 125.0;
   float ir_threshold = 112.0;
+  bool use_perspective_intersection = true;
 
   std::string configfile = "testconfig.yml";
   std::ofstream testconfig(configfile);
@@ -36,11 +37,12 @@ int main(int argc, char* argv[] )
   testconfig << "min_blob_size: " << min_blob_size << std::endl;
   testconfig << "max_blob_size: " << max_blob_size << std::endl;
   testconfig << "ir_threshold: " << ir_threshold << std::endl;
+  testconfig << "use_perspective_intersection:" << use_perspective_intersection << std::endl;
   testconfig.close();
 
   devastar::Configuration config( configfile );
 
-	CHECK_EQUAL_INT( config.serialDevice, serial_device, "Serial Device Name");
+	CHECK_EQUAL( config.serialDevice, serial_device, "Serial Device Name");
 	CHECK_EQUAL_REAL( config.irWidth, ir_width, "ir_width", 0.00001);
 	CHECK_EQUAL_REAL( config.irHeight, ir_height, "ir_height", 0.00001);
 	CHECK_EQUAL_REAL( config.outWidth, output_width, "output_width", 0.00001);
@@ -50,4 +52,5 @@ int main(int argc, char* argv[] )
 	CHECK_EQUAL_REAL( config.minBlobSize, min_blob_size, "min_blob_size", 0.00001);
 	CHECK_EQUAL_REAL( config.maxBlobSize, max_blob_size, "max_blob_size", 0.00001);
 	CHECK_EQUAL_REAL( config.irThreshold, ir_threshold, "ir_threshold", 0.00001);
+	CHECK_EQUAL( config.usePerspectiveIntersection, use_perspective_intersection, "Use Perspective Intersection");
 }

@@ -17,7 +17,8 @@ Configuration::Configuration(const std::string& configFile)
     outYMin(5.0f),
     minBlobSize(3.0),
     maxBlobSize(275.0),
-    irThreshold(127.0)
+    irThreshold(127.0),
+    usePerspectiveIntersection(false)
 {
   fs::path configPath(configFile);
 
@@ -57,6 +58,10 @@ Configuration::Configuration(const std::string& configFile)
 
     if(!fileStorage["ir_threshold"].empty() ) {
       fileStorage["ir_threshold"] >> irThreshold;
+    }
+
+    if(!fileStorage["use_perspective_intersection"].empty() ) {
+      fileStorage["use_perspective_intersection"] >> usePerspectiveIntersection;
     }
   }
 }
