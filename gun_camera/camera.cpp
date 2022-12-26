@@ -32,7 +32,7 @@
 #include <filesystem>
 namespace fs = std::filesystem;
 
-
+#include "compute.h"
 #include "config.h"
 #include "aim_calib.h"
 #include "devastar_common.h"
@@ -45,74 +45,6 @@ void update3d( const cv::Mat& tvec, const cv::Mat& R, const float& u, const floa
 
 
 
-// intersect rectangle with a ray
-// * Ray is defined as R0 + t * D
-// 
-// * Rectangle is represented with a corner point P0
-// and two vectors ( S1 and S2 ) indicating the length
-// of the sides of the  rectangle.
-
-bool intersectRect(const cv::Vec3f& R0, // ray start
-    const cv::Vec3f& D, // ray direction 
-    const cv::Vec3f& P0,// Rectangle Origin 
-    const cv::Vec3f& S1, // side 1. direction
-    const cv::Vec3f& S2, // side 2. direction 
-    const float& S1Len,  // side 1. length
-    const float& S2Len,  // side 2. length
-    float& u,            // u 
-    float& v	     // v	
-    ) {
-
-  // compute plane Normal 
-  cv::Vec3f N = S1.cross(S2);
-  float DdotN = D.dot(N);
-
-  // get point on plane P
-  auto a = ((P0 - R0).dot(N)) / D.dot(N);
-  // we assume that P = R0 + a * D
-  cv::Vec3f P = R0 + a * D;  // Point on Plane
-
-  // make vector out of point on plane and orign
-  cv::Vec3f P0P = P - P0;
-
-  // project P0P vector onto the sides.
-  u = P0P.dot(S1);
-  v = P0P.dot(S2);
-  return (u >= 0 && u <= S1Len && v >= 0 && v <= S2Len);
-
-}
-
-
-
-void computeUV(const cv::Vec3f& R0, // ray start
-    const cv::Vec3f& D, // ray direction 
-    const cv::Vec3f& P0,// Rectangle Origin 
-    const cv::Vec3f& S1, // side 1. direction
-    const cv::Vec3f& S2, // side 2. direction 
-    const float& S1Len,  // side 1. length
-    const float& S2Len,  // side 2. length
-    float& u,            // u   // could be 
-    float& v	     // v	
-    ) {
-
-  // compute plane Normal 
-  cv::Vec3f N = S1.cross(S2);
-  float DdotN = D.dot(N);
-
-  // get point on plane P
-  auto a = ((P0 - R0).dot(N)) / D.dot(N);
-  // we assume that P = R0 + a * D
-  cv::Vec3f P = R0 + a * D;  // Point on Plane
-
-  // make vector out of point on plane and orign
-  cv::Vec3f P0P = P - P0;
-
-  // project P0P vector onto the sides.
-  u = P0P.dot(S1);
-  v = P0P.dot(S2);
-  //return (u >= 0 && u <= S1Len && v >= 0 && v <= S2Len);
-
-}
 
 
 // Button variables 
@@ -290,16 +222,14 @@ int main(int argc, char* argv[] )
   std::cout << "CAP_PROP_BUFFERSIZE : " << inputVideo.set(cv::CAP_PROP_BUFFERSIZE,  1) << std::endl;
 
 
-  // Setup object points
+  // Setup World object points
   std::vector<cv::Point3f> worldPoints;
   worldPoints.push_back(cv::Point3f(0, 0, 0));
   worldPoints.push_back(cv::Point3f(conf.irWidth, 0, 0));
   worldPoints.push_back(cv::Point3f(0, conf.irHeight, 0));
   worldPoints.push_back(cv::Point3f(conf.irWidth, conf.irHeight, 0));
 
-	
-
-  // setup rectangle for intersection test
+  // setup rectangle for PnP intersection 
   cv::Vec3f S1, S2, P0;
   P0[0] = worldPoints[0].x;
   P0[1] = worldPoints[0].y;
@@ -314,6 +244,14 @@ int main(int argc, char* argv[] )
   S2[1] = worldPoints[2].y - P0[1];
   S2[2] = worldPoints[2].z - P0[2];
   S2 = cv::normalize(S2);
+
+  // setup target verticies for prespective intersection
+  std::vector<cv::Point2f> targetVertices =  {
+    cv::Point(0, 0), 
+    cv::Point(conf.irWidth - 1, 0),
+    cv::Point(0, conf.irHeight - 1),
+    cv::Point(conf.irWidth - 1, conf.irHeight - 1)
+  };
 
 #ifdef SHOW_3D
   glutInit(&argc, argv);
@@ -357,11 +295,11 @@ int main(int argc, char* argv[] )
   cv::Mat thresh;
   cv::Mat displayCopy;
 
-	// screen center point
+  // screen center point
   std::vector<cv::Point2f> srcPoints(1);
   srcPoints[0].x = float(frameWidth/2);
   srcPoints[0].y = float(frameHeight/2);
-	
+
   // setup output
   unsigned char offscreen[] = { 0xFF, 0xFF, 0x00 };
   //unsigned char offscreen16[] = { 0xFF, 0xFF, 0xFF, 0xFF, 0x00 };
@@ -488,6 +426,7 @@ int main(int argc, char* argv[] )
         }
       }
 
+      bool hit = false;
       // only calculate hit if count is 4 (could potentially also check if "n >= 4", but 
       // use simplest case for now.
       if( centerCount == 4 ) {
@@ -600,145 +539,20 @@ int main(int argc, char* argv[] )
 
         // rvec- is the rotation vector
         // tvec- is the translation vector 
-        cv::Mat rvec, tvec;
-        std::vector< cv::Mat > rvecs, tvecs;	
+        float u,v;
+        if(conf.usePerspectiveIntersection ) {
+          getPerspectiveIntersection( centers, targetVertices, srcPoints, u, v );
+          solveRet = true;
+        } else  {
 
-//#ifdef SHOW_CALC
-        std::vector<cv::Vec3d> rvecsVec, tvecsVec;
-#ifdef SHOW_TIME
-        startTime = std::chrono::steady_clock::now();
-#endif
-        solvePnPGeneric(worldPoints, centers, cameraMatrix, distCoeffs, rvecsVec, tvecsVec, false, cv::SOLVEPNP_AP3P);
-#ifdef SHOW_TIME
-        endTime = std::chrono::steady_clock::now();
-        std::cout << "ELAPSED TIME>> solvePnPGeneric(): " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
-#endif
-        std::cout << "rvecsVec.size() : " << rvecsVec.size() << std::endl; 
-        for( int vecIter=0; vecIter < rvecsVec.size(); ++ vecIter ) {
-#ifdef SHOW_TIME
-        startTime = std::chrono::steady_clock::now();
-#endif
-          //std::cout << "GENERIC RVEC: " << rvecsVec[vecIter] << " " << ticks << std::endl;
-          cv::Mat R;
-          cv::Rodrigues(rvecsVec[vecIter], R); // get rotation matrix R ( 3x3 ) from rotation vector 
-          R = R.t(); // inverse
-          tvec = -R * tvecsVec[vecIter]; // translation of inverseA == actual camera position
-
-          // compute itersection
-          cv::Vec3f Ray0,D;
-          Ray0[0] = tvec.at<double>(0);
-          Ray0[1] = tvec.at<double>(1);
-          Ray0[2] = tvec.at<double>(2);
-
-          D[0] = R.at<double>(0, 2);
-          D[1] = R.at<double>(1, 2);
-          D[2] = R.at<double>(2, 2);
-          //std::cout << "  GENERIC Ray0: " << Ray0 << std::endl;
-          //std::cout << "  GENERIC D: " << D << std::endl;
-          float u,v;
-          computeUV(Ray0, D, P0, S1, S2, conf.irWidth, conf.irHeight, u, v);
-          //std::cout << "  GENERIC U: " << u << " V: " << v << std::endl;
-
-#ifdef SHOW_TIME
-        endTime = std::chrono::steady_clock::now();
-        std::cout << "ELAPSED TIME>> solvePnPGeneric compute R/tvec and UV: " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
-        std::cout << "  GENERIC U: " << u << " V: " << v << std::endl;
-#endif
-        }
-//#endif
-
-
-    std::vector<cv::Point2f> targetVertices =  {
-        cv::Point(0, 0), 
-				cv::Point(conf.irWidth - 1, 0),
-        cv::Point(0, conf.irHeight - 1),
-        cv::Point(conf.irWidth - 1, conf.irHeight - 1)
-    };
-#ifdef SHOW_TIME
-        startTime = std::chrono::steady_clock::now();
-#endif
-    cv::Mat rotationMatrix = getPerspectiveTransform(centers, targetVertices);
-#ifdef SHOW_TIME
-        endTime = std::chrono::steady_clock::now();
-        std::cout << "ELAPSED TIME>> solve getPerspectiveTransform(): " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
-#endif
-	std::cout << "centers[0]: " << centers[0] << std::endl;
-	std::cout << "centers[1]: " << centers[1] << std::endl;
-	std::cout << "centers[2]: " << centers[2] << std::endl;
-	std::cout << "centers[3]: " << centers[3] << std::endl;
-	std::cout << "srcPoints[0]: " << srcPoints[0] << std::endl;
-#ifdef SHOW_TIME
-        startTime = std::chrono::steady_clock::now();
-#endif
-  	std::vector<cv::Point2f> dstCenters;
-	cv::perspectiveTransform(	srcPoints, dstCenters, rotationMatrix);
-#ifdef SHOW_TIME
-        endTime = std::chrono::steady_clock::now();
-        std::cout << "ELAPSED TIME>> solve perspectiveTransform(): " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
-        std::cout << "  dstCenters[0]" << dstCenters[0] <<std::endl;
-#endif
-
-
-
-
-#ifdef SHOW_TIME
-        startTime = std::chrono::steady_clock::now();
-#endif
-        solveRet = cv::solvePnP(worldPoints, centers, cameraMatrix, distCoeffs, rvec, tvec, false, cv::SOLVEPNP_AP3P);
-#ifdef SHOW_TIME
-        endTime = std::chrono::steady_clock::now();
-        std::cout << "ELAPSED TIME>> solvePnP(): " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
-#endif
-        bool hit = false;
-        if( solveRet ) {
-
-#ifdef SHOW_TIME
-          startTime = std::chrono::steady_clock::now();
-#endif
-          cv::Mat R;
-          cv::Rodrigues(rvec, R); // get rotation matrix R ( 3x3 ) from rotation vector 
-          R = R.t(); // inverse
-          tvec = -R * tvec; // translation of inverseA == actual camera position
-
-          // compute itersection
-          cv::Vec3f Ray0,D;
-          Ray0[0] = tvec.at<double>(0);
-          Ray0[1] = tvec.at<double>(1);
-          Ray0[2] = tvec.at<double>(2);
-
-          D[0] = R.at<double>(0, 2);
-          D[1] = R.at<double>(1, 2);
-          D[2] = R.at<double>(2, 2);
-
-          //hit = intersectRect(Ray0, D, P0, S1, S2, irWidth, irHeight, u, v);
-          computeUV(Ray0, D, P0, S1, S2, conf.irWidth, conf.irHeight, u, v);
-#ifdef SHOW_TIME
-          endTime = std::chrono::steady_clock::now();
-          std::cout << "ELAPSED TIME>>  R/tvec and computeUV(): " << std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() << "\n"; 
-        std::cout << " AP3P  U: " << u << " V: " << v << std::endl;
-#endif
-
-
-#ifdef SHOW_CALC
-          std::cout << "rvec: " << rvec << std::endl;	
-          std::cout << "tvec: " << tvec << std::endl;
-          std::cout << "R: " << R << std::endl;
-          std::cout << "inverse tvec: " << tvec << std::endl;
-
-          std::cout << "Ray0: " << Ray0 << std::endl;
-          std::cout << "D: " << D << std::endl;
-          std::cout << "P0: " << P0 << std::endl;
-          std::cout << "S1: " << S1 << std::endl;
-          std::cout << "S2: " << S2 << std::endl;
-          std::cout << "irWidth: " << conf.irWidth  << std::endl;
-          std::cout << "irHeight: " << conf.irHeight << std::endl;
-          std::cout << "U: " << u << " V: " << v << " hit: " << hit << std::endl;
-#endif
-
-
+          cv::Mat rvec, tvec;
+          std::vector< cv::Mat > rvecs, tvecs;	
 #ifdef SHOW_3D
           update3d( tvec, R, u, v );
 #endif
+        }
+
+        if( solveRet ) {
           hit = u > ac.uMin && u < ac.uMax && v > ac.vMin && v < ac.vMax;
           if( hit ) {
 #ifdef SHOW_IMAGE
@@ -746,7 +560,6 @@ int main(int argc, char* argv[] )
             pt.x = (u/conf.irWidth) * float(frameWidth);
             pt.y = (v/conf.irHeight) * float(frameHeight); 
             cv::circle( displayCopy, pt, 5.0f, cv::Scalar(0,255,255), 3.0f);
-            cv::circle( displayCopy, dstCenters[0], 5.0f, cv::Scalar(255,0,255), 3.0f);
             cv::imshow("points", displayCopy );
             cv::waitKey(1);
 #endif
@@ -764,11 +577,11 @@ int main(int argc, char* argv[] )
               /* mouse mode is 1080p for now.
                *
                *
-              sx = (unsigned short)outX;
-              sy = (unsigned short)outY;
-              memcpy( xxyyb, &sx, sizeof( unsigned short ) ); 
-              memcpy( xxyyb + sizeof(unsigned short) , &sy, sizeof( unsigned short ) ); 
-              */
+               sx = (unsigned short)outX;
+               sy = (unsigned short)outY;
+               memcpy( xxyyb, &sx, sizeof( unsigned short ) ); 
+               memcpy( xxyyb + sizeof(unsigned short) , &sy, sizeof( unsigned short ) ); 
+               */
               // bit7 determines starting char. This allows 14 bit numbers.  
               //  * first byte gets 128 + lower 7 bits of X
               //  * second byte gets bits 8 through 14 of x
@@ -783,11 +596,11 @@ int main(int argc, char* argv[] )
 
 #ifdef SHOW_CALC
               std::cout << " " <<  std::bitset<8>( xxyyb[0] )
-                        << " " <<  std::bitset<16>( xxyyb[1] )
-                        << " " <<  std::bitset<8>( xxyyb[2] )
-                        << " " <<  std::bitset<16>( xxyyb[3] )
-                        << " " <<  std::bitset<8>( xxyyb[4] )
-		       	<< std::endl;
+                << " " <<  std::bitset<16>( xxyyb[1] )
+                << " " <<  std::bitset<8>( xxyyb[2] )
+                << " " <<  std::bitset<16>( xxyyb[3] )
+                << " " <<  std::bitset<8>( xxyyb[4] )
+                << std::endl;
 #endif
               if(serialPortReady ) {
                 auto ret = write( fd, xxyyb, sizeof(xxyyb) );
@@ -887,7 +700,7 @@ int main(int argc, char* argv[] )
         offscreen[2] = buttons;
         auto ret = write( fd, offscreen, sizeof(offscreen) );
       } else {
-	      // Don't bother with offscreen for mouse
+        // Don't bother with offscreen for mouse
         //offscreen16[4] = buttons;
         //auto ret = write( fd, offscreen16, sizeof(offscreen16) );
       }

@@ -18,6 +18,13 @@ bool getPnPIntersection(const std::vector< cv::Point3f>& worldPoints,
     float& v	     // v	
     );
 
+void getPerspectiveIntersection( 
+		const std::vector<cv::Point2f> centers,
+		const std::vector<cv::Point2f>& targetVertices,
+		std::vector<cv::Point2f> srcPoints,
+		float& u, 
+		float& v 
+		);
 
 
 
