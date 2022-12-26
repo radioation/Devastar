@@ -142,6 +142,7 @@ int main(int argc, char* argv[] )
   std::cout << "min_blob_size: " << conf.minBlobSize << "\n";
   std::cout << "max_blob_size: " << conf.maxBlobSize << "\n";
   std::cout << " ir_threshold: " << conf.irThreshold << "\n";
+  std::cout << "  perspective: " << conf.usePerspectiveIntersection << "\n";
 
   std::cout << "        u_min: " << ac.uMin << "\n";
   std::cout << "        v_min: " << ac.vMin << "\n";
@@ -295,6 +296,7 @@ int main(int argc, char* argv[] )
   cv::Mat thresh;
   cv::Mat displayCopy;
   std::vector<cv::Point2f> undistortCenters;
+  auto noArray = cv::noArray();
   undistortCenters.resize(4);
 
   // screen center point
@@ -413,13 +415,9 @@ int main(int argc, char* argv[] )
         if( moments[i].m00 > conf.minBlobSize && moments[i].m00 < conf.maxBlobSize ) {
 
           if( centerCount < 4 ) {
-            //centers[centerCount] =  cv::Point2f( static_cast<float> ( moments[i].m10 / ( moments[i].m00 + 1e-5)), static_cast<float> ( moments[i].m01 / ( moments[i].m00 + 1e-5)) );
             centers[centerCount] = cv::Point2f( static_cast<float> ( moments[i].m10 / ( moments[i].m00 + 1e-5)), static_cast<float> ( moments[i].m01 / ( moments[i].m00 + 1e-5)) );
-            //#ifdef SHOW_CALC
 
-            //std::cout << "center[" << centerCount << "] = " << centers[centerCount] <<  " area: " << moments[i].m00 <<std::endl;
           }
-          //#endif
           ++centerCount;
 
           if( centerCount == 4 ) {
@@ -543,8 +541,8 @@ int main(int argc, char* argv[] )
         // tvec- is the translation vector 
         float u,v;
         if(conf.usePerspectiveIntersection ) {
-	  cv::undistortPoints( centers, undistortCenters, cameraMatrix, distCoeffs );
-          getPerspectiveIntersection( centers, targetVertices, srcPoints, u, v );
+	  cv::undistortPoints( centers, undistortCenters, cameraMatrix, distCoeffs, noArray, cameraMatrix );
+          getPerspectiveIntersection( undistortCenters, targetVertices, srcPoints, u, v );
           solveRet = true;
         } else  {
 

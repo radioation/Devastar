@@ -101,7 +101,6 @@ bool getPnPIntersection(const std::vector< cv::Point3f>& worldPoints,
   auto endTime = std::chrono::steady_clock::now();
   std::cout << "ELAPSED TIME>> solvePnP(): " << float(std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count()) / 1000.0f << "\n"; 
 #endif
-  bool hit = false;
   if( solveRet ) {
 
 #ifdef SHOW_TIME
@@ -122,12 +121,10 @@ bool getPnPIntersection(const std::vector< cv::Point3f>& worldPoints,
     D[1] = R.at<double>(1, 2);
     D[2] = R.at<double>(2, 2);
 
-    //hit = intersectRect(Ray0, D, P0, S1, S2, irWidth, irHeight, u, v);
     computeUV(Ray0, D, P0, S1, S2, S1Len, S2Len, u, v);
 #ifdef SHOW_TIME
     endTime = std::chrono::steady_clock::now();
-    std::cout << "ELAPSED TIME>>  R/tvec and computeUV(): " << float(std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count()) / 1000.0f << "\n"; 
-    std::cout << " AP3P  U: " << u << " V: " << v << std::endl;
+    std::cout << "ELAPSED TIME>> solvePnP()  R/tvec and computeUV(): " << float(std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count()) / 1000.0f << "\n"; 
 #endif
 
 
@@ -136,6 +133,7 @@ bool getPnPIntersection(const std::vector< cv::Point3f>& worldPoints,
     std::cout << "centers[1]: " << centers[1] << std::endl;
     std::cout << "centers[2]: " << centers[2] << std::endl;
     std::cout << "centers[3]: " << centers[3] << std::endl;
+    std::cout << " AP3P  U: " << u << " V: " << v << std::endl;
     std::cout << "rvec: " << rvec << std::endl;	
     std::cout << "tvec: " << tvec << std::endl;
     std::cout << "R: " << R << std::endl;
@@ -148,7 +146,7 @@ bool getPnPIntersection(const std::vector< cv::Point3f>& worldPoints,
     std::cout << "S2: " << S2 << std::endl;
     std::cout << "irWidth: " << irWidth  << std::endl;
     std::cout << "irHeight: " << irHeight << std::endl;
-    std::cout << "U: " << u << " V: " << v << " hit: " << hit << std::endl;
+    std::cout << "u: " << u << " v: " << v << std::endl;
 #endif
 
     return true;
@@ -180,15 +178,20 @@ void getPerspectiveIntersection(
 #endif
   std::vector<cv::Point2f> dstCenters;
   cv::perspectiveTransform(srcPoints, dstCenters, rotationMatrix);
+  u = dstCenters[0].x;
+  v = dstCenters[0].y;
 #ifdef SHOW_TIME
   endTime = std::chrono::steady_clock::now();
   std::cout << "ELAPSED TIME>> solve perspectiveTransform(): " << float(std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count()) / 1000.0f << "\n"; 
+#endif
+#ifdef SHOW_CALC
   std::cout << "dstCenters[0]" << dstCenters[0] <<std::endl;
   std::cout << "centers[0]: " << centers[0] << std::endl;
   std::cout << "centers[1]: " << centers[1] << std::endl;
   std::cout << "centers[2]: " << centers[2] << std::endl;
   std::cout << "centers[3]: " << centers[3] << std::endl;
   std::cout << "srcPoints[0]: " << srcPoints[0] << std::endl;
+  std::cout << "u: " << u << " v: " << v << std::endl;
 #endif
 
 }
