@@ -11,7 +11,7 @@ find_package(GLUT REQUIRED)
 include_directories( ${OpenCV_INCLUDE_DIR} ${OPENGL_INCLUDE_DIRS}  ${GLUT_INCLUDE_DIRS} )
 
 # add the executable
-add_executable( devastar camera.cpp display3d.cpp aim_calib.cpp config.cpp )
+add_executable( devastar compute.cpp camera.cpp display3d.cpp aim_calib.cpp config.cpp )
 add_executable( test_config test_config.cpp config.cpp )
 add_executable( test_calib test_calib.cpp aim_calib.cpp )
 
