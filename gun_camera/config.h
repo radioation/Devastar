@@ -36,6 +36,8 @@ namespace devastar {
     // threshol
     float irThreshold;
 
+    bool usePerspectiveIntersection;
+
   };
 }
 #endif //  _DEV_CONFIGURATION_H_

@@ -1,7 +1,7 @@
 #ifndef _DEVASTAR_TEST_H_
 #define _DEVASTAR_TEST_H_
 
-#define CHECK_EQUAL_INT(VALUE, EXPECTED, NAME) \
+#define CHECK_EQUAL(VALUE, EXPECTED, NAME) \
   if (VALUE != EXPECTED) \
     { \
       std::cerr  << "\033[1;31mFAILED\033[0m " << NAME << " expected: " << EXPECTED << " value: " << VALUE <<"\n"; \
