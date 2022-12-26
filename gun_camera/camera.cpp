@@ -23,10 +23,10 @@
 #define BUFFER_SIZE 64
 #define BAUDRATE B38400            
 
-#define SHOW_IMAGE
+//#define SHOW_IMAGE
 //#define SHOW_3D
 //#define SHOW_CALC
-#define SHOW_TIME
+//#define SHOW_TIME
 
 
 #include <filesystem>
@@ -325,7 +325,7 @@ int main(int argc, char* argv[] )
     err = gpiod_line_get_value_bulk(&g_lines, values);
 #ifdef SHOW_TIME
     auto endTime = std::chrono::steady_clock::now();
-    std::cout << "ELAPSED TIME>> frame gpiod_line_get_value_bulk(): " << std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count() << "\n"; 
+    std::cout << "ELAPSED TIME>> frame gpiod_line_get_value_bulk(): " << float(std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count()) / 1000.0f << "\n"; 
 #endif
     if(err)
     {
@@ -357,7 +357,7 @@ int main(int argc, char* argv[] )
     inputVideo >> frame;
 #ifdef SHOW_TIME
     endTime = std::chrono::steady_clock::now();
-    std::cout << "ELAPSED TIME>> frame grab: " << std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count() << "\n"; 
+    std::cout << "ELAPSED TIME>> frame grab: " << float(std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count()) / 1000.0f << "\n"; 
 #endif
     // cv to grey
 #ifdef SHOW_TIME
@@ -366,7 +366,7 @@ int main(int argc, char* argv[] )
     cv::cvtColor( frame, gray, cv::COLOR_BGR2GRAY); 
 #ifdef SHOW_TIME
     endTime = std::chrono::steady_clock::now();
-    std::cout << "ELAPSED TIME>> cvtColor(): " << std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count() << "\n"; 
+    std::cout << "ELAPSED TIME>> cvtColor(): " << float(std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count()) / 1000.0f << "\n"; 
 #endif
 
     // threshold on brightness
@@ -376,7 +376,7 @@ int main(int argc, char* argv[] )
     cv::threshold( gray, thresh, conf.irThreshold, 255, cv::THRESH_BINARY);
 #ifdef SHOW_TIME
     endTime = std::chrono::steady_clock::now();
-    std::cout << "ELAPSED TIME>> cv::threshold(): " << std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count() << "\n"; 
+    std::cout << "ELAPSED TIME>> cv::threshold(): " << float(std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count()) / 1000.0f << "\n"; 
 #endif
     std::vector< std::vector< cv::Point> > contours;
     // look for IR lights
@@ -386,7 +386,7 @@ int main(int argc, char* argv[] )
     cv::findContours( thresh, contours, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
 #ifdef SHOW_TIME
     endTime = std::chrono::steady_clock::now();
-    std::cout << "ELAPSED TIME>> cv::findContours(): " << std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count() << "\n"; 
+    std::cout << "ELAPSED TIME>> cv::findContours(): " << float(std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count()) / 1000.0f << "\n"; 
 #endif
 
 #ifdef SHOW_TIME
@@ -432,7 +432,7 @@ int main(int argc, char* argv[] )
       if( centerCount == 4 ) {
 #ifdef SHOW_TIME
         endTime = std::chrono::steady_clock::now();
-        std::cout << "ELAPSED TIME>> get centers from moments: " << std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count() << "\n"; 
+        std::cout << "ELAPSED TIME>> get centers from moments: " << float(std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count()) / 1000.0f << "\n"; 
 #endif
 
 
@@ -511,7 +511,7 @@ int main(int argc, char* argv[] )
 
 #ifdef SHOW_TIME
         endTime = std::chrono::steady_clock::now();
-        std::cout << "ELAPSED TIME>> sort centers: " << std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count() << "\n"; 
+        std::cout << "ELAPSED TIME>> sort centers: " << float(std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count()) / 1000.0f << "\n"; 
 #endif
 
 
@@ -684,7 +684,7 @@ int main(int argc, char* argv[] )
         if( hit ) {
 #ifdef SHOW_TIME
           auto loopBottomTime = std::chrono::steady_clock::now();
-          std::cout << "ELAPSED TIME>> LOOP top to bottom" << std::chrono::duration_cast<std::chrono::milliseconds>(loopTopTime - loopBottomTime).count() << "\n"; 
+          std::cout << "ELAPSED TIME>> LOOP top to bottom" << float(std::chrono::duration_cast<std::chrono::microseconds>(loopTopTime - loopBottomTime).count()) / 1000.0f << "\n"; 
 #endif
           continue;
         }
@@ -707,7 +707,7 @@ int main(int argc, char* argv[] )
     }
 #ifdef SHOW_TIME
     auto loopBottomTime = std::chrono::steady_clock::now();
-    std::cout << "ELAPSED TIME>> LOOP top to bottom" << std::chrono::duration_cast<std::chrono::milliseconds>(loopTopTime - loopBottomTime).count() << "\n"; 
+    std::cout << "ELAPSED TIME>> LOOP top to bottom" << float(std::chrono::duration_cast<std::chrono::microseconds>(loopTopTime - loopBottomTime).count()) / 1000.0f << "\n"; 
 #endif
 
   }// while(true)
