@@ -13,6 +13,12 @@
 #include <string>
 
 
+#include <opencv2/opencv.hpp>
+
+// largely based on  arduino code at https://wiki.dfrobot.com/Positioning_ir_camera__SKU_SEN0158
+
+
+
 bool write2bytes(int file, char d1, char d2)
 {
 	char buffer[2];
@@ -25,20 +31,23 @@ bool write2bytes(int file, char d1, char d2)
 }
 
 int main(int argc, char* argv[] ) {
+
+	// Setup I2C device
 	std::string deviceName = "/dev/i2c-1";
 	auto file = open(deviceName.c_str(), O_RDWR);
 	if (file < 0) {
-		std::cerr << "failed to open device: " << deviceName << std::endl;
+		std::cerr << "Failed to open device: " << deviceName << std::endl;
 		exit(1);
 	}
-	int addr = 0x58; // i2c address of the slave
+
+	int addr = 0x58; // i2c slave address
 	if (ioctl(file, I2C_SLAVE, addr) < 0) {
-		std::cerr << "failed to access slave: " << std::hex << addr << std::endl;
+		std::cerr << "Failed to access slave: " << std::hex << addr << std::endl;
 		exit(1);
 	}
 
 
-	// IR sensor initialize
+	// IR sensor initialize (sequence from DFRobot arduino example)
 	struct timespec delay;
 	struct timespec remains;
 	delay.tv_sec = 0;
@@ -53,36 +62,25 @@ int main(int argc, char* argv[] ) {
 	nanosleep(&delay, &remains);
 
 
-	/*	
-
-		__u8 reg = 0x10;
-		__s32 res;
-		res = i2c_smbus_read_word_data(file, reg);
-		if (res < 0) {
-	// ERROR HANDLING: i2c transaction failed 
-	} else {
-	//res contains the read word 
-	}
-	*/
-	// read and read some more
+	// Read continuously
 	char buffer[255] = {0};
 	int Ix[4];
 	int Iy[4];
 	int s;
+	cv::namedWindow("IR", cv::WINDOW_AUTOSIZE);
 	while(true) {
 		// send IR sensor read command
 		buffer[0] = 0x36;
 		size_t len = 1;
 		if (write(file, buffer, len) != len)		
 		{
-			// ERROR HANDLING: i2c transaction failed 
 			std::cerr << "Failed to write to the i2c bus.\n";
 		}	
-		// read 16 bytes
+
+		// read 16 bytes over i2C
 		len = 16;
 		if (read(file, buffer, len) != len)	
 		{
-			//ERROR HANDLING: i2c transaction failed
 			std::cerr << "Failed to read from the i2c bus.\n";
 		}
 
@@ -111,14 +109,29 @@ int main(int argc, char* argv[] ) {
 		Iy[3] += (s & 0xC0) <<2;
 
 		std::cout << "----" << std::endl;
+		cv::Mat displayImg( 1024, 768, CV_8UC3, cv::Scalar(0,0,0));
 		for(int i=0; i<4; i++)
 		{
 			std::cout << i << ": " <<  int(Ix[i])  << "," << int(Iy[i]) << std::endl;
+			cv::Point2f pt( Ix[i], Iy[i] );
+			cv::Scalar color( 0,0,255);
+			if( i == 1 ) {
+			 	color = cv::Scalar( 0,255, 0);
+			} else if (i == 2 ) {
+			 	color = cv::Scalar(255,0, 0);
+			} else if( i == 3 ) {
+			 	color = cv::Scalar(255,255, 0);
+			}
+			cv::circle( displayImg, pt, 1.0, color, 2.0f );
 		}
-		delay.tv_nsec = 10000000; // 10 miliseconds
-		nanosleep(&delay, &remains);
+		// slight delay
+		cv::imshow("IR", displayImg);
+		auto key = cv::waitKey(5);
+		if( key == 'q' ) {
+			break;
+		}
 
 	}	
-
+	cv::destroyWindow("IR");
 	return 0;
 }
