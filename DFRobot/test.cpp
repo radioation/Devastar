@@ -58,7 +58,7 @@ int main(int argc, char* argv[] ) {
 	write2bytes(file,0x08,0xC0); nanosleep(&delay, &remains);
 	write2bytes(file,0x1A,0x40); nanosleep(&delay, &remains);
 	write2bytes(file,0x33,0x33); nanosleep(&delay, &remains);
-	delay.tv_nsec = 100000000; // 100 miliseconds
+	delay.tv_nsec = 5000000; // 5 miliseconds
 	nanosleep(&delay, &remains);
 
 
@@ -68,6 +68,9 @@ int main(int argc, char* argv[] ) {
 	int Iy[4];
 	int s;
 	cv::namedWindow("IR", cv::WINDOW_AUTOSIZE);
+	cv::Mat blankImg( 1024, 768, CV_8UC3, cv::Scalar(0,0,0));
+	cv::Mat displayImg( 1024, 768, CV_8UC3, cv::Scalar(0,0,0));
+	bool persist = false;
 	while(true) {
 		// send IR sensor read command
 		buffer[0] = 0x36;
@@ -108,8 +111,10 @@ int main(int argc, char* argv[] ) {
 		Ix[3] += (s & 0x30) <<4;
 		Iy[3] += (s & 0xC0) <<2;
 
+		if( !persist ) {
+			displayImg = blankImg.clone();
+		}
 		std::cout << "----" << std::endl;
-		cv::Mat displayImg( 1024, 768, CV_8UC3, cv::Scalar(0,0,0));
 		for(int i=0; i<4; i++)
 		{
 			std::cout << i << ": " <<  int(Ix[i])  << "," << int(Iy[i]) << std::endl;
@@ -129,6 +134,8 @@ int main(int argc, char* argv[] ) {
 		auto key = cv::waitKey(5);
 		if( key == 'q' ) {
 			break;
+		} else if ( key == 'p' ) {
+			persist = !persist;
 		}
 
 	}	
