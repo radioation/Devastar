@@ -34,14 +34,14 @@ namespace devastar {
     double minBlobSize;
     double maxBlobSize;
 
-    // threshol
+    // threshold
     float irThreshold;
 
     bool usePerspectiveIntersection;
 
-
     // I2C  device
     std::string i2cDevice;
+    bool useDFRobot;
 
   };
 }

@@ -19,7 +19,8 @@ Configuration::Configuration(const std::string& configFile)
     maxBlobSize(275.0),
     irThreshold(127.0),
     usePerspectiveIntersection(false),
-    i2cDevice( DEFAULT_I2C_DEVICE )
+    i2cDevice( DEFAULT_I2C_DEVICE ),
+    useDFRobot(false)
 {
   fs::path configPath(configFile);
 
@@ -68,5 +69,10 @@ Configuration::Configuration(const std::string& configFile)
     if(!fileStorage["i2c_device"].empty() ) {
       fileStorage["i2c_device"] >> i2cDevice;
     }
+
+    if(!fileStorage["use_dfrobot"].empty() ) {
+      fileStorage["use_dfrobot"] >> useDFRobot;
+    }
+
   }
 }
