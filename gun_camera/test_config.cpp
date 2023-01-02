@@ -21,6 +21,7 @@ int main(int argc, char* argv[] )
   double max_blob_size = 125.0;
   float ir_threshold = 112.0;
   bool use_perspective_intersection = true;
+  std::string i2c_device =  "/dev/fakei2c";
 
   std::string configfile = "testconfig.yml";
   std::ofstream testconfig(configfile);
@@ -38,6 +39,7 @@ int main(int argc, char* argv[] )
   testconfig << "max_blob_size: " << max_blob_size << std::endl;
   testconfig << "ir_threshold: " << ir_threshold << std::endl;
   testconfig << "use_perspective_intersection:" << use_perspective_intersection << std::endl;
+  testconfig << "i2c_device: " << i2c_device << std::endl;
   testconfig.close();
 
   devastar::Configuration config( configfile );
@@ -53,4 +55,5 @@ int main(int argc, char* argv[] )
 	CHECK_EQUAL_REAL( config.maxBlobSize, max_blob_size, "max_blob_size", 0.00001);
 	CHECK_EQUAL_REAL( config.irThreshold, ir_threshold, "ir_threshold", 0.00001);
 	CHECK_EQUAL( config.usePerspectiveIntersection, use_perspective_intersection, "Use Perspective Intersection");
+	CHECK_EQUAL( config.i2cDevice, i2c_device, "I2C Device Name");
 }

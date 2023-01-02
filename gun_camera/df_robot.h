@@ -9,10 +9,10 @@
 
 namespace devastar {
 
-  class IRCam {
+  class DFRobot {
     public:
-      IRCam();
-      bool init(const Configuration& conf, const std::string &cameraCalibrationFilename);
+      DFRobot();
+      bool init(const Configuration& conf );
       void getCenters( std::vector<cv::Point2f>& centers );
 
       bool isRunning() { return m_isRunning; };
@@ -20,16 +20,12 @@ namespace devastar {
 
     private:
       std::vector<cv::Point2f> m_centers;
-      float m_frameWidth;
-      float m_frameHeight;
-      bool m_doColorConversion;
-
-      cv::Mat m_cameraMatrix;
-      cv::Mat m_distCoeffs;
 
       std::thread m_captureThread;
-      std::mutex m_captureThreadMutex;;
+      std::mutex m_captureThreadMutex;
 
+      std::string m_deviceName;
+      int m_devFile;
       bool m_isRunning;
 
       void captureThread();

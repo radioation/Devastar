@@ -6,6 +6,7 @@
 #include <opencv2/opencv.hpp>
 
 #define DEFAULT_SERIAL_DEVICE "/dev/ttyACM0"
+#define DEFAULT_I2C_DEVICE "/dev/i2c-1"
 
 
 namespace devastar {
@@ -17,7 +18,7 @@ namespace devastar {
     Configuration(const std::string& );
     ~Configuration() {};
 
-    // serical device
+    // serial device
     std::string serialDevice;
     // IR LED model width/height.
     float irWidth; 
@@ -37,6 +38,10 @@ namespace devastar {
     float irThreshold;
 
     bool usePerspectiveIntersection;
+
+
+    // I2C  device
+    std::string i2cDevice;
 
   };
 }

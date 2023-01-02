@@ -38,8 +38,10 @@ IRCam::IRCam() :
 {
 }
 
-bool IRCam::init(const std::string& cameraCalibrationFilename )
+bool IRCam::init(const Configuration& conf, const std::string& cameraCalibrationFilename )
 {
+	m_conf = conf;
+
 	// Read in camera calibration calibration
 	fs::path calibPath( cameraCalibrationFilename ); 
 	if( fs::exists(calibPath)) {

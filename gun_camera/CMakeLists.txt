@@ -36,7 +36,7 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
 
 
 # add the executable
-add_executable( devastar compute.cpp main.cpp display3d.cpp aim_calib.cpp config.cpp ir_camera.cpp )
+add_executable( devastar compute.cpp main.cpp display3d.cpp aim_calib.cpp config.cpp ir_camera.cpp df_robot.cpp )
 add_executable( test_config test_config.cpp config.cpp )
 add_executable( test_calib test_calib.cpp aim_calib.cpp )
 
