@@ -43,6 +43,10 @@ namespace devastar {
     std::string i2cDevice;
     bool useDFRobot;
 
+    // camera 
+    int frameWidth;
+    int frameHeight;
+
   };
 }
 #endif //  _DEV_CONFIGURATION_H_

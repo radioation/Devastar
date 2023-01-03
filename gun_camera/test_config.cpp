@@ -9,7 +9,7 @@
 
 int main(int argc, char* argv[] )
 {
-   
+
   std::string serial_device =  "/dev/fakecomm0";
   float ir_width = 555.0f;
   float ir_height = 275.0f;
@@ -23,6 +23,8 @@ int main(int argc, char* argv[] )
   bool use_perspective_intersection = true;
   std::string i2c_device =  "/dev/fakei2c";
   bool use_dfrobot = false;
+  int frame_width = 320;
+  int frame_height = 200;
 
   std::string configfile = "testconfig.yml";
   std::ofstream testconfig(configfile);
@@ -42,21 +44,25 @@ int main(int argc, char* argv[] )
   testconfig << "use_perspective_intersection:" << use_perspective_intersection << std::endl;
   testconfig << "i2c_device: " << i2c_device << std::endl;
   testconfig << "use_dfrobot:" << use_dfrobot << std::endl;
+  testconfig << "frame_width:" << frame_width << std::endl;
+  testconfig << "frame_height:" << frame_height << std::endl;
   testconfig.close();
 
   devastar::Configuration config( configfile );
 
-	CHECK_EQUAL( config.serialDevice, serial_device, "Serial Device Name");
-	CHECK_EQUAL_REAL( config.irWidth, ir_width, "ir_width", 0.00001);
-	CHECK_EQUAL_REAL( config.irHeight, ir_height, "ir_height", 0.00001);
-	CHECK_EQUAL_REAL( config.outWidth, output_width, "output_width", 0.00001);
-	CHECK_EQUAL_REAL( config.outHeight,output_height, "output_height", 0.00001);
-	CHECK_EQUAL_REAL( config.outXMin, output_x_min, "output_x_min", 0.00001);
-	CHECK_EQUAL_REAL( config.outYMin, output_y_min, "output_y_min", 0.00001);
-	CHECK_EQUAL_REAL( config.minBlobSize, min_blob_size, "min_blob_size", 0.00001);
-	CHECK_EQUAL_REAL( config.maxBlobSize, max_blob_size, "max_blob_size", 0.00001);
-	CHECK_EQUAL_REAL( config.irThreshold, ir_threshold, "ir_threshold", 0.00001);
-	CHECK_EQUAL( config.usePerspectiveIntersection, use_perspective_intersection, "Use Perspective Intersection");
-	CHECK_EQUAL( config.i2cDevice, i2c_device, "I2C Device Name");
-	CHECK_EQUAL( config.useDFRobot, use_dfrobot, "Use DF Robot");
+  CHECK_EQUAL( config.serialDevice, serial_device, "Serial Device Name");
+  CHECK_EQUAL_REAL( config.irWidth, ir_width, "ir_width", 0.00001);
+  CHECK_EQUAL_REAL( config.irHeight, ir_height, "ir_height", 0.00001);
+  CHECK_EQUAL_REAL( config.outWidth, output_width, "output_width", 0.00001);
+  CHECK_EQUAL_REAL( config.outHeight,output_height, "output_height", 0.00001);
+  CHECK_EQUAL_REAL( config.outXMin, output_x_min, "output_x_min", 0.00001);
+  CHECK_EQUAL_REAL( config.outYMin, output_y_min, "output_y_min", 0.00001);
+  CHECK_EQUAL_REAL( config.minBlobSize, min_blob_size, "min_blob_size", 0.00001);
+  CHECK_EQUAL_REAL( config.maxBlobSize, max_blob_size, "max_blob_size", 0.00001);
+  CHECK_EQUAL_REAL( config.irThreshold, ir_threshold, "ir_threshold", 0.00001);
+  CHECK_EQUAL( config.usePerspectiveIntersection, use_perspective_intersection, "Use Perspective Intersection");
+  CHECK_EQUAL( config.i2cDevice, i2c_device, "I2C Device Name");
+  CHECK_EQUAL( config.useDFRobot, use_dfrobot, "Use DF Robot");
+  CHECK_EQUAL( config.frameWidth, frame_width, "Frame Width");
+  CHECK_EQUAL( config.frameHeight, frame_height, "Frame Height");
 }

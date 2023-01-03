@@ -1,22 +1,24 @@
-#ifndef _IR_CAMMERA_H_
-#define _IR_CAMMERA_H_
+#ifndef _IRCAMERA_H_
+#define _IRCAMERA_H_
 
 #include <string>
 #include <thread>
 #include <mutex>
 #include <opencv2/opencv.hpp>
 #include "config.h"
+#include "devastar_common.h"
+
 
 namespace devastar {
 
-  class IRCam {
+  class IRCam : public PointSourceInf {
     public:
       IRCam();
       bool init(const Configuration& conf, const std::string &cameraCalibrationFilename);
-      void getCenters( std::vector<cv::Point2f>& centers );
+      virtual void getCenters( std::vector<cv::Point2f>& centers ) const;
 
-      bool isRunning() { return m_isRunning; };
-      bool stop();
+      virtual bool isRunning() { return m_isRunning; };
+      virtual bool stop();
 
     private:
       std::vector<cv::Point2f> m_centers;
@@ -37,4 +39,4 @@ namespace devastar {
   };
 };
 
-#endif //_IR_CAMMERA_H_
+#endif //_IRCAMERA_H_

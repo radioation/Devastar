@@ -1,6 +1,9 @@
 #ifndef _DEVASTAR_COMMON_H_
 #define _DEVASTAR_COMMON_H_
 
+#include <vector>
+#include <opencv2/opencv.hpp>
+
 namespace devastar {
 
   enum ButtonCodes
@@ -11,6 +14,13 @@ namespace devastar {
     BUTTON_C = 0x04,
     BUTTON_D = 0x08,
     BUTTON_E = 0x10 
+  };
+
+  class PointSourceInf {
+  public:
+    virtual void getCenters( std::vector<cv::Point2f>& centers ) const = 0;
+    virtual bool isRunning() = 0;
+    virtual bool stop() = 0;
   };
 
 }

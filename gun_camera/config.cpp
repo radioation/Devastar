@@ -74,5 +74,13 @@ Configuration::Configuration(const std::string& configFile)
       fileStorage["use_dfrobot"] >> useDFRobot;
     }
 
+    if(!fileStorage["frame_width"].empty() ) {
+      fileStorage["frame_width"] >> frameWidth;
+    }
+
+    if(!fileStorage["frame_height"].empty() ) {
+      fileStorage["frame_height"] >> frameHeight;
+    }
+
   }
 }

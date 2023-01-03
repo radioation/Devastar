@@ -41,7 +41,8 @@ IRCam::IRCam() :
 bool IRCam::init(const Configuration& conf, const std::string& cameraCalibrationFilename )
 {
 	m_conf = conf;
-
+	m_frameWidth = conf.frameWidth;
+	m_frameHeight = conf.frameHeight;
 	// Read in camera calibration calibration
 	fs::path calibPath( cameraCalibrationFilename ); 
 	if( fs::exists(calibPath)) {
@@ -57,8 +58,9 @@ bool IRCam::init(const Configuration& conf, const std::string& cameraCalibration
 }
 
 
-void IRCam::getCenters( std::vector<cv::Point2f>& centers ) {
-
+void IRCam::getCenters( std::vector<cv::Point2f>& centers ) const {
+	std::transform(m_centers.begin(), m_centers.end(), std::back_inserter(centers), 
+			[](auto e){ return e; });   
 }
 
 bool IRCam::stop() {

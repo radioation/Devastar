@@ -77,7 +77,9 @@ bool DFRobot::init(const Configuration& conf )
 }
 
 
-void DFRobot::getCenters( std::vector<cv::Point2f>& centers ) {
+void DFRobot::getCenters( std::vector<cv::Point2f>& centers ) const {
+	std::transform(m_centers.begin(), m_centers.end(), std::back_inserter(centers), 
+			[](auto e){ return e; });   
 }
 
 bool DFRobot::stop() {
