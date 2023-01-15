@@ -20,7 +20,10 @@ Configuration::Configuration(const std::string& configFile)
     irThreshold(127.0),
     usePerspectiveIntersection(false),
     i2cDevice( DEFAULT_I2C_DEVICE ),
-    useDFRobot(false)
+    useDFRobot(false),
+    frameWidth(640),
+    frameHeight(480),
+    colorCamera(true)
 {
   fs::path configPath(configFile);
 

@@ -43,6 +43,7 @@ bool IRCam::init(const Configuration& conf, const std::string& cameraCalibration
   m_conf = conf;
   m_frameWidth = conf.frameWidth;
   m_frameHeight = conf.frameHeight;
+  m_doColorConversion  = conf.colorCamera;
   std::cout << "m_frameWidth: " << m_frameWidth << std::endl;
   std::cout << "m_frameHeight: " << m_frameHeight << std::endl;
   // Read in camera calibration calibration

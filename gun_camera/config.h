@@ -46,6 +46,7 @@ namespace devastar {
     // camera 
     int frameWidth;
     int frameHeight;
+    bool colorCamera;
 
   };
 }

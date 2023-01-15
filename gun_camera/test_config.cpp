@@ -25,6 +25,7 @@ int main(int argc, char* argv[] )
   bool use_dfrobot = false;
   int frame_width = 320;
   int frame_height = 200;
+  bool color_camera = true;
 
   std::string configfile = "testconfig.yml";
   std::ofstream testconfig(configfile);
@@ -46,6 +47,7 @@ int main(int argc, char* argv[] )
   testconfig << "use_dfrobot:" << use_dfrobot << std::endl;
   testconfig << "frame_width:" << frame_width << std::endl;
   testconfig << "frame_height:" << frame_height << std::endl;
+  testconfig << "color_camera:" << color_camera << std::endl;
   testconfig.close();
 
   devastar::Configuration config( configfile );
@@ -65,4 +67,5 @@ int main(int argc, char* argv[] )
   CHECK_EQUAL( config.useDFRobot, use_dfrobot, "Use DF Robot");
   CHECK_EQUAL( config.frameWidth, frame_width, "Frame Width");
   CHECK_EQUAL( config.frameHeight, frame_height, "Frame Height");
+  CHECK_EQUAL( config.colorCamera, true, "Color Camera");
 }
