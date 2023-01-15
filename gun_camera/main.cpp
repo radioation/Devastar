@@ -231,15 +231,20 @@ int main(int argc, char* argv[] )
   // setup cam device
   bool initRetval = false;
   if( conf.useDFRobot == true ) {
+    std::cout << "Setup DFRobot" << std::endl;
     devastar::DFRobot *df = new devastar::DFRobot;
     initRetval = df->init( conf );
     pointSource = df;
   } else {
+    std::cout << "Setup IR Camera with " << cameraCalibrationFilename  << std::endl;
     devastar::IRCam *ic = new devastar::IRCam;
     initRetval = ic->init( conf, cameraCalibrationFilename );
+    std::cout << " IR Camera init: " << initRetval  << std::endl;
     pointSource = ic;
   }
 
+   std::cout << "initretval" <<  initRetval  << std::endl;
+   std::cout << "is running()" <<  pointSource->isRunning() <<std::endl;
   if( !initRetval || !pointSource->isRunning() ) {
     std::cerr << "Camera failed to run" << std::endl;
     exit(-1);
@@ -393,7 +398,7 @@ int main(int argc, char* argv[] )
 
         cv::Mat rvec, tvec;
         std::vector< cv::Mat > rvecs, tvecs;	
-        solveRet = getPnPIntersection( worldPoints, centers, cameraMatrix, distCoeffs, P0, S1, S2, conf.irWidth, conf.irHeight, u, v);
+        solveRet = false; // getPnPIntersection( worldPoints, centers, cameraMatrix, distCoeffs, P0, S1, S2, conf.irWidth, conf.irHeight, u, v);
 #ifdef SHOW_3D
         update3d( tvec, R, u, v );
 #endif

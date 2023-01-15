@@ -95,6 +95,7 @@ bool DFRobot::stop() {
 
 
 void DFRobot::captureThread() {
+  m_isRunning = true;
   // setup vars
   m_centers.resize(4);
 
@@ -112,13 +113,12 @@ void DFRobot::captureThread() {
 #endif
 
 
-  m_isRunning = true;
   cv::Point2f pt;
-  while (true) {
+  while (m_isRunning) {
 
 
 #ifdef SHOW_TIME
-    startTime = std::chrono::steady_clock::now();
+    auto startTime = std::chrono::steady_clock::now();
 #endif
     // send IR sensor read command
     const size_t outLen = 1;
@@ -134,7 +134,7 @@ void DFRobot::captureThread() {
       std::cerr << "Failed to read from the i2c bus.\n";
     }
 #ifdef SHOW_TIME
-    endTime = std::chrono::steady_clock::now();
+    auto endTime = std::chrono::steady_clock::now();
     std::cout << "ELAPSED TIME>> read data: " << float(std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count()) / 1000.0f << "\n"; 
 #endif
 
