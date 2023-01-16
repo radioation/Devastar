@@ -68,8 +68,8 @@ int main(int argc, char* argv[] ) {
 	int Iy[4];
 	int s;
 	cv::namedWindow("IR", cv::WINDOW_AUTOSIZE);
-	cv::Mat blankImg( 1024, 768, CV_8UC3, cv::Scalar(0,0,0));
-	cv::Mat displayImg( 1024, 768, CV_8UC3, cv::Scalar(0,0,0));
+	cv::Mat blankImg( 768, 1024, CV_8UC3, cv::Scalar(0,0,0));
+	cv::Mat displayImg( 768, 1024, CV_8UC3, cv::Scalar(0,0,0));
 	bool persist = false;
 	while(true) {
 		// send IR sensor read command
