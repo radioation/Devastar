@@ -109,8 +109,8 @@ void DFRobot::captureThread() {
 
 #ifdef SHOW_IMAGE
   cv::namedWindow("IR", cv::WINDOW_AUTOSIZE);
-  cv::Mat blankImg( 1024, 768, CV_8UC3, cv::Scalar(0,0,0));
-  cv::Mat displayImg( 1024, 768, CV_8UC3, cv::Scalar(0,0,0));
+  cv::Mat blankImg( 768, 1024, CV_8UC3, cv::Scalar(0,0,0));
+  cv::Mat displayImg( 768, 1024, CV_8UC3, cv::Scalar(0,0,0));
 #endif
 
 
