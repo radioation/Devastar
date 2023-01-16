@@ -12,6 +12,6 @@ max_blob_size: 250.0
 ir_threshold: 100.0
 use_perspective_intersection: 0
 i2c_device: /dev/i2c-1
-use_dfrobot:1
-frame_width:1024
-frame_height:768
+use_dfrobot:0
+frame_width:640
+frame_height:480
