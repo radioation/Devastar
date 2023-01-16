@@ -15,7 +15,7 @@ namespace devastar {
     public:
       IRCam();
       bool init(const Configuration& conf, const std::string &cameraCalibrationFilename);
-      virtual void getCenters( std::vector<cv::Point2f>& centers ) const;
+      virtual unsigned int getCenters( std::vector<cv::Point2f>& centers ) const;
 
       virtual bool isRunning() { return m_isRunning; };
       virtual bool stop();
@@ -36,6 +36,8 @@ namespace devastar {
 
       void captureThread();
       Configuration m_conf;
+      unsigned int m_setCount;
+
   };
 };
 

@@ -340,6 +340,7 @@ int main(int argc, char* argv[] )
   // look at the cameras
   cv::Point2f pt;
   int ticks = 0;
+  unsigned int lastSet = 0;
   while (true) {
     ++ticks;
 #ifdef SHOW_3D
@@ -381,160 +382,175 @@ int main(int argc, char* argv[] )
 
 
     // get centers from source
-    pointSource->getCenters( centers );
-    // check fov bad values
-    bool goodCenters =true;
-    if ( goodCenters ) {
-      bool solveRet = false;
-      bool hit = false;
-      // rvec- is the rotation vector
-      // tvec- is the translation vector 
-      float u,v;
-      if(conf.usePerspectiveIntersection ) {
-        cv::undistortPoints( centers, undistortCenters, cameraMatrix, distCoeffs, noArray, cameraMatrix );
-        getPerspectiveIntersection( undistortCenters, targetVertices, srcPoints, u, v );
-        solveRet = true;
-      } else  {
-
-        cv::Mat rvec, tvec;
-        std::vector< cv::Mat > rvecs, tvecs;	
-        solveRet = false; // getPnPIntersection( worldPoints, centers, cameraMatrix, distCoeffs, P0, S1, S2, conf.irWidth, conf.irHeight, u, v);
-#ifdef SHOW_3D
-        update3d( tvec, R, u, v );
-#endif
+    unsigned int currentSet = pointSource->getCenters( centers );
+    if( currentSet != lastSet ) {
+      lastSet = currentSet;
+      // new set, we can process it
+      bool goodCenters = true;
+      // check for bad values.   
+      for( const auto& iter: centers ) {
+        // df robot res is 1024x768
+        if( iter.y == 1023.0f  ) { 
+          // too large for second value, must be bad
+          goodCenters = false;
+        }	
       }
 
-      if( solveRet ) {
-        hit = u > ac.uMin && u < ac.uMax && v > ac.vMin && v < ac.vMax;
-        if( hit ) {
-          // arduino has the min/max values  We just need the X/Y range calculated from the percentage
-          auto outX = int(( (u-ac.uMin) / ac.uWidth) * conf.outWidth);
-          auto outY = int(( (v-ac.vMin) / ac.vHeight) * conf.outHeight);
-          if( !use14BitData ) {
-            xyb[0] = (unsigned char)outX;
-            xyb[1] = (unsigned char)outY;
-            xyb[2] = buttons;
-            if(serialPortReady ) {
-              auto ret = write( fd, xyb, sizeof(xyb) );
-            }
-          } else {
-            /* mouse mode is 1080p for now.
-             *
-             *
-             sx = (unsigned short)outX;
-             sy = (unsigned short)outY;
-             memcpy( xxyyb, &sx, sizeof( unsigned short ) ); 
-             memcpy( xxyyb + sizeof(unsigned short) , &sy, sizeof( unsigned short ) ); 
-             */
-            // bit7 determines starting char. This allows 14 bit numbers.  
-            //  * first byte gets 128 + lower 7 bits of X
-            //  * second byte gets bits 8 through 14 of x
-            //  * third byte gets lower 7 bits of X
-            //  * fourth byte gets bits 8 through 14 of x
-            //  * fift byte gets buttons
-            xxyyb[0] = 0x80 | (outX & 0x7F);
-            xxyyb[1] = ( outX  >> 7 ) & 0x7F;
-            xxyyb[2] = outY & 0x7F;
-            xxyyb[3] = ( outY  >> 7 ) & 0x7F;
-            xxyyb[4] = buttons;
+      if ( goodCenters ) {
+        bool solveRet = false;
+        bool hit = false;
+        // rvec- is the rotation vector
+        // tvec- is the translation vector 
+        float u,v;
+        if( !conf.useDFRobot ) {
+          // perspective transform 
+          getPerspectiveIntersection( centers, targetVertices, srcPoints, u, v );
+        }else  if(conf.usePerspectiveIntersection ) {
+          // cameras have calibration files to undistort iamge
+          cv::undistortPoints( centers, undistortCenters, cameraMatrix, distCoeffs, noArray, cameraMatrix );
+          getPerspectiveIntersection( undistortCenters, targetVertices, srcPoints, u, v );
+          solveRet = true;
+        } else  {
+
+          cv::Mat rvec, tvec;
+          std::vector< cv::Mat > rvecs, tvecs;	
+          solveRet = getPnPIntersection( worldPoints, centers, cameraMatrix, distCoeffs, P0, S1, S2, conf.irWidth, conf.irHeight, u, v);
+#ifdef SHOW_3D
+          update3d( tvec, R, u, v );
+#endif
+        }
+
+        if( solveRet ) {
+          hit = u > ac.uMin && u < ac.uMax && v > ac.vMin && v < ac.vMax;
+          if( hit ) {
+            // arduino has the min/max values  We just need the X/Y range calculated from the percentage
+            auto outX = int(( (u-ac.uMin) / ac.uWidth) * conf.outWidth);
+            auto outY = int(( (v-ac.vMin) / ac.vHeight) * conf.outHeight);
+            if( !use14BitData ) {
+              xyb[0] = (unsigned char)outX;
+              xyb[1] = (unsigned char)outY;
+              xyb[2] = buttons;
+              if(serialPortReady ) {
+                auto ret = write( fd, xyb, sizeof(xyb) );
+              }
+            } else {
+              /* mouse mode is 1080p for now.
+               *
+               *
+               sx = (unsigned short)outX;
+               sy = (unsigned short)outY;
+               memcpy( xxyyb, &sx, sizeof( unsigned short ) ); 
+               memcpy( xxyyb + sizeof(unsigned short) , &sy, sizeof( unsigned short ) ); 
+               */
+              // bit7 determines starting char. This allows 14 bit numbers.  
+              //  * first byte gets 128 + lower 7 bits of X
+              //  * second byte gets bits 8 through 14 of x
+              //  * third byte gets lower 7 bits of X
+              //  * fourth byte gets bits 8 through 14 of x
+              //  * fift byte gets buttons
+              xxyyb[0] = 0x80 | (outX & 0x7F);
+              xxyyb[1] = ( outX  >> 7 ) & 0x7F;
+              xxyyb[2] = outY & 0x7F;
+              xxyyb[3] = ( outY  >> 7 ) & 0x7F;
+              xxyyb[4] = buttons;
 
 #ifdef SHOW_CALC
-            std::cout << " " <<  std::bitset<8>( xxyyb[0] )
-              << " " <<  std::bitset<16>( xxyyb[1] )
-              << " " <<  std::bitset<8>( xxyyb[2] )
-              << " " <<  std::bitset<16>( xxyyb[3] )
-              << " " <<  std::bitset<8>( xxyyb[4] )
-              << std::endl;
+              std::cout << " " <<  std::bitset<8>( xxyyb[0] )
+                << " " <<  std::bitset<16>( xxyyb[1] )
+                << " " <<  std::bitset<8>( xxyyb[2] )
+                << " " <<  std::bitset<16>( xxyyb[3] )
+                << " " <<  std::bitset<8>( xxyyb[4] )
+                << std::endl;
 #endif
-            if(serialPortReady ) {
-              auto ret = write( fd, xxyyb, sizeof(xxyyb) );
+              if(serialPortReady ) {
+                auto ret = write( fd, xxyyb, sizeof(xxyyb) );
+              }
             }
+            //continue;  // head back up the loop
+          } // if( hit ) 
+        } // if( solveRet ) 
+
+
+
+        if( doCalibration ) {
+          // get state from aimcalibrator
+          auto currentMode = aimCalibrator.getMode();
+          auto currentShots = aimCalibrator.getCurrentSampleCount();
+          auto maxShots = aimCalibrator.getMaxSamples();
+
+          switch( currentMode ) {
+            case devastar::AIM_CALIBRATE_UPPER_LEFT:
+              std::cout << "\33[2K\rAim at upper left corner and pull trigger: " << currentShots << "/" << maxShots << "      " << std::flush;
+              break;
+            case devastar::AIM_CALIBRATE_LOWER_RIGHT:
+              std::cout << "\33[2K\rAim at lower right corner and pull trigger: " << currentShots << "/" << maxShots << "      " << std::flush;
+              break;
+            case devastar::AIM_CALIBRATE_CALIBRATED:
+              std::cout << "\33[2K\rCalibrated: B to reset calibration, C to Cancel, Start to Save          " << std::flush;
+              break;
+            case devastar::AIM_CALIBRATE_SAVED:
+              std::cout << "\33[2K\rSaved: B to reset calibration, C or Start to exit      " << std::flush;
+              break;
+            default:
+              break;
           }
-          //continue;  // head back up the loop
-        } // if( hit ) 
-      } // if( solveRet ) 
 
 
-
-      if( doCalibration ) {
-        // get state from aimcalibrator
-        auto currentMode = aimCalibrator.getMode();
-        auto currentShots = aimCalibrator.getCurrentSampleCount();
-        auto maxShots = aimCalibrator.getMaxSamples();
-
-        switch( currentMode ) {
-          case devastar::AIM_CALIBRATE_UPPER_LEFT:
-            std::cout << "\33[2K\rAim at upper left corner and pull trigger: " << currentShots << "/" << maxShots << "      " << std::flush;
-            break;
-          case devastar::AIM_CALIBRATE_LOWER_RIGHT:
-            std::cout << "\33[2K\rAim at lower right corner and pull trigger: " << currentShots << "/" << maxShots << "      " << std::flush;
-            break;
-          case devastar::AIM_CALIBRATE_CALIBRATED:
-            std::cout << "\33[2K\rCalibrated: B to reset calibration, C to Cancel, Start to Save          " << std::flush;
-            break;
-          case devastar::AIM_CALIBRATE_SAVED:
-            std::cout << "\33[2K\rSaved: B to reset calibration, C or Start to exit      " << std::flush;
-            break;
-          default:
-            break;
-        }
-
-
-        // A is trigger
-        if( buttons & devastar::BUTTON_A ) {
-          if( lastButton != devastar::BUTTON_A ) {
-            lastButton = devastar::BUTTON_A;
-            if( solveRet ) {
-              // u and v were calcuatled, pass on to the calibrator
-              aimCalibrator.appendSample( u, v );
-            }
-          } 
-        } else if( buttons & devastar::BUTTON_B ) {
-          if( lastButton != devastar::BUTTON_B ) {
-            lastButton = devastar::BUTTON_B;
-            // complety clear the values
-            aimCalibrator.resetCalibration();
-          } 
-        } else if( buttons & devastar::BUTTON_C ) {
-          if( lastButton != devastar::BUTTON_C ) {
-            lastButton = devastar::BUTTON_C;
-            if( currentMode == devastar::AIM_CALIBRATE_CALIBRATED ) {
-              // go back to old calibration values
-              aimCalibrator.cancelCalibration(); 
-            } else {
-              // exit out in all other cases
-              std::cout << "\nExiting out\n";
-              exit(0);
-            }
-          } 
-        } else if( buttons & devastar::BUTTON_D ) {
-          if( lastButton != devastar::BUTTON_D ) {
-            lastButton = devastar::BUTTON_D;
-            if( currentMode == devastar::AIM_CALIBRATE_CALIBRATED ) {
-              // if calibrated, save it
-              aimCalibrator.saveCalibration();
-            } else if( currentMode == devastar::AIM_CALIBRATE_SAVED ) {
-              // already saved, so exit
-              std::cout << "\nExiting out\n";
-              exit(0);
-            } // ignore the rest
-          } 
-        } else if ( buttons == 0 ) {
-          lastButton = devastar::BUTTON_NONE;
-        }
-      } // if( doCalibration ) 
+          // A is trigger
+          if( buttons & devastar::BUTTON_A ) {
+            if( lastButton != devastar::BUTTON_A ) {
+              lastButton = devastar::BUTTON_A;
+              if( solveRet ) {
+                // u and v were calcuatled, pass on to the calibrator
+                aimCalibrator.appendSample( u, v );
+              }
+            } 
+          } else if( buttons & devastar::BUTTON_B ) {
+            if( lastButton != devastar::BUTTON_B ) {
+              lastButton = devastar::BUTTON_B;
+              // complety clear the values
+              aimCalibrator.resetCalibration();
+            } 
+          } else if( buttons & devastar::BUTTON_C ) {
+            if( lastButton != devastar::BUTTON_C ) {
+              lastButton = devastar::BUTTON_C;
+              if( currentMode == devastar::AIM_CALIBRATE_CALIBRATED ) {
+                // go back to old calibration values
+                aimCalibrator.cancelCalibration(); 
+              } else {
+                // exit out in all other cases
+                std::cout << "\nExiting out\n";
+                exit(0);
+              }
+            } 
+          } else if( buttons & devastar::BUTTON_D ) {
+            if( lastButton != devastar::BUTTON_D ) {
+              lastButton = devastar::BUTTON_D;
+              if( currentMode == devastar::AIM_CALIBRATE_CALIBRATED ) {
+                // if calibrated, save it
+                aimCalibrator.saveCalibration();
+              } else if( currentMode == devastar::AIM_CALIBRATE_SAVED ) {
+                // already saved, so exit
+                std::cout << "\nExiting out\n";
+                exit(0);
+              } // ignore the rest
+            } 
+          } else if ( buttons == 0 ) {
+            lastButton = devastar::BUTTON_NONE;
+          }
+        } // if( doCalibration ) 
 
 
-      if( hit ) {
+        if( hit ) {
 #ifdef SHOW_TIME
-        auto loopBottomTime = std::chrono::steady_clock::now();
-        std::cout << "ELAPSED TIME>> LOOP top to bottom" << float(std::chrono::duration_cast<std::chrono::microseconds>(loopTopTime - loopBottomTime).count()) / 1000.0f << "\n"; 
+          auto loopBottomTime = std::chrono::steady_clock::now();
+          std::cout << "ELAPSED TIME>> LOOP top to bottom" << float(std::chrono::duration_cast<std::chrono::microseconds>(loopTopTime - loopBottomTime).count()) / 1000.0f << "\n"; 
 #endif
-        continue;
-      }
+          continue;
+        }
 
-    } 
-
+      } 
+    }
 
 
     // send -1, -1 to arduino if offscreen

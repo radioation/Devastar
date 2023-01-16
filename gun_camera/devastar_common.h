@@ -18,7 +18,7 @@ namespace devastar {
 
   class PointSourceInf {
   public:
-    virtual void getCenters( std::vector<cv::Point2f>& centers ) const = 0;
+    virtual unsigned int getCenters( std::vector<cv::Point2f>& centers ) const = 0;
     virtual bool isRunning() = 0;
     virtual bool stop() = 0;
   };

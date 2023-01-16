@@ -34,7 +34,8 @@ IRCam::IRCam() :
   m_frameWidth(0.0f),
   m_frameHeight(0.0f),
   m_doColorConversion(true),
-  m_isRunning(false)
+  m_isRunning(false),
+  m_setCount(0)	
 {
 }
 
@@ -62,9 +63,10 @@ bool IRCam::init(const Configuration& conf, const std::string& cameraCalibration
 }
 
 
-void IRCam::getCenters( std::vector<cv::Point2f>& centers ) const {
+unsigned int IRCam::getCenters( std::vector<cv::Point2f>& centers ) const {
   std::transform(m_centers.begin(), m_centers.end(), std::back_inserter(centers), 
       [](auto e){ return e; });   
+  return m_setCount;
 }
 
 bool IRCam::stop() {
@@ -276,6 +278,7 @@ void IRCam::captureThread() {
           m_centers[1] = pt4;
           m_centers[3] = pt3;
         }
+        ++m_setCount;
 
 #ifdef SHOW_TIME
         endTime = std::chrono::steady_clock::now();

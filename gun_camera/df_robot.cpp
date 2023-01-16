@@ -31,7 +31,7 @@ namespace fs = std::filesystem;
 using namespace devastar;
 
 
-DFRobot::DFRobot() : m_isRunning(false)
+DFRobot::DFRobot() : m_isRunning(false), m_setCount(0)
 {
 }
 
@@ -79,9 +79,10 @@ bool DFRobot::init(const Configuration& conf )
 }
 
 
-void DFRobot::getCenters( std::vector<cv::Point2f>& centers ) const {
+unsigned int DFRobot::getCenters( std::vector<cv::Point2f>& centers ) const {
   std::transform(m_centers.begin(), m_centers.end(), std::back_inserter(centers), 
       [](auto e){ return e; });   
+  return m_setCount;
 }
 
 bool DFRobot::stop() {
@@ -126,6 +127,7 @@ void DFRobot::captureThread() {
     if (write(m_devFile, outBuffer, outLen) != outLen)
     {
       std::cerr << "Failed to write to the i2c bus.\n";
+      continue;
     }
 
     // read 16 bytes over i2C
@@ -133,6 +135,7 @@ void DFRobot::captureThread() {
     if (read(m_devFile, readBuffer, inLen) != inLen)
     {
       std::cerr << "Failed to read from the i2c bus.\n";
+      continue;
     }
 #ifdef SHOW_TIME
     auto endTime = std::chrono::steady_clock::now();
@@ -273,9 +276,7 @@ void DFRobot::captureThread() {
       m_centers[1] = pt4;
       m_centers[3] = pt3;
     }
-    for( int ctr=0; ctr < 4; ++ctr ) {
-      std::cout << "df: " << ctr << " pt: " << m_centers[ctr] << std::endl;
-    }
+    ++m_setCount; // increment
 #ifdef SHOW_TIME
     endTime = std::chrono::steady_clock::now();
     std::cout << "ELAPSED TIME>> sort centers: " << float(std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count()) / 1000.0f << "\n"; 
