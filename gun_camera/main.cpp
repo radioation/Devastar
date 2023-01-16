@@ -234,6 +234,7 @@ int main(int argc, char* argv[] )
     std::cout << "Setup DFRobot" << std::endl;
     devastar::DFRobot *df = new devastar::DFRobot;
     initRetval = df->init( conf );
+    std::cout << " DF Robot init: " << initRetval  << std::endl;
     pointSource = df;
   } else {
     std::cout << "Setup IR Camera with " << cameraCalibrationFilename  << std::endl;
@@ -243,8 +244,7 @@ int main(int argc, char* argv[] )
     pointSource = ic;
   }
 
-   std::cout << "initretval" <<  initRetval  << std::endl;
-   std::cout << "is running()" <<  pointSource->isRunning() <<std::endl;
+  std::cout << "Pointsource is running()" <<  pointSource->isRunning() <<std::endl;
   if( !initRetval || !pointSource->isRunning() ) {
     std::cerr << "Camera failed to run" << std::endl;
     exit(-1);
