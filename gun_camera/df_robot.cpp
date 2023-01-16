@@ -70,7 +70,9 @@ bool DFRobot::init(const Configuration& conf )
   delay.tv_nsec = 5000000; // 5 miliseconds
   nanosleep(&delay, &remains);
 
-  // start the thread
+  // Start the thread
+  m_isRunning = true;
+  m_captureThread = std::thread( &DFRobot::captureThread, this );
 
 
   return true;
@@ -78,8 +80,8 @@ bool DFRobot::init(const Configuration& conf )
 
 
 void DFRobot::getCenters( std::vector<cv::Point2f>& centers ) const {
-	std::transform(m_centers.begin(), m_centers.end(), std::back_inserter(centers), 
-			[](auto e){ return e; });   
+  std::transform(m_centers.begin(), m_centers.end(), std::back_inserter(centers), 
+      [](auto e){ return e; });   
 }
 
 bool DFRobot::stop() {
@@ -95,7 +97,6 @@ bool DFRobot::stop() {
 
 
 void DFRobot::captureThread() {
-  m_isRunning = true;
   // setup vars
   m_centers.resize(4);
 
@@ -187,7 +188,7 @@ void DFRobot::captureThread() {
     }
     // slight delay
     cv::imshow("IR", displayImg);
-
+    cv::waitKey(1);
 #endif
 
 
@@ -274,6 +275,8 @@ void DFRobot::captureThread() {
 #endif
 
   }// while(true)
+#ifdef SHOW_IMAGE
   cv::destroyWindow("IR");
+#endif
 }
 
