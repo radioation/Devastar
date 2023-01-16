@@ -53,7 +53,8 @@ bool IRCam::init(const Configuration& conf, const std::string& cameraCalibration
     fileStorage["camera_matrix"] >> m_cameraMatrix;
     fileStorage["dist_coeffs"] >> m_distCoeffs;
 
-    // check if valid?
+    // Start the thread
+    m_isRunning = true;
     m_captureThread = std::thread( &IRCam::captureThread, this );
     return true;
   }    
@@ -79,7 +80,6 @@ bool IRCam::stop() {
 
 
 void IRCam::captureThread() {
-  m_isRunning = true;
   // setup videocapture
   cv::VideoCapture inputVideo;
   inputVideo.open(0); // assuming default camera, TODO: make configurable
@@ -94,7 +94,7 @@ void IRCam::captureThread() {
   cv::Mat gray;
   cv::Mat thresh;
   cv::Mat displayCopy;
-  
+
   std::vector<cv::Point2f> undistortCenters;
   auto noArray = cv::noArray();
   undistortCenters.resize(4);
@@ -160,7 +160,7 @@ void IRCam::captureThread() {
     startTime = std::chrono::steady_clock::now();
 #endif
 #ifdef SHOW_IMAGE
-        displayCopy = frame.clone();
+    displayCopy = frame.clone();
 #endif
     float u = -1.0f, v = -1.0f;
     bool solveRet = false;
@@ -304,8 +304,8 @@ void IRCam::captureThread() {
       }
     } // if (contours.size() 
 #ifdef SHOW_IMAGE
-      cv::imshow("points", displayCopy );
-      cv::waitKey(1);
+    cv::imshow("points", displayCopy );
+    cv::waitKey(1);
 #endif
   }// while(m_isRunning)
 
