@@ -173,9 +173,12 @@ void DFRobot::captureThread() {
 
 #ifdef SHOW_IMAGE
     displayImg = blankImg.clone();
+#endif
     for(int i=0; i<4; i++)
     {
       cv::Point2f pt( Ix[i], Iy[i] );
+      m_centers[i] = pt;
+#ifdef SHOW_IMAGE
       cv::Scalar color( 0,0,255);
       if( i == 1 ) {
         color = cv::Scalar( 0,255, 0);
@@ -185,8 +188,10 @@ void DFRobot::captureThread() {
         color = cv::Scalar(255,255, 0);
       }
       cv::circle( displayImg, pt, 1.0, color, 2.0f );
+#endif
     }
-    // slight delay
+
+#ifdef SHOW_IMAGE
     cv::imshow("IR", displayImg);
     cv::waitKey(1);
 #endif
@@ -268,7 +273,9 @@ void DFRobot::captureThread() {
       m_centers[1] = pt4;
       m_centers[3] = pt3;
     }
-
+    for( int ctr=0; ctr < 4; ++ctr ) {
+      std::cout << "df: " << ctr << " pt: " << m_centers[ctr] << std::endl;
+    }
 #ifdef SHOW_TIME
     endTime = std::chrono::steady_clock::now();
     std::cout << "ELAPSED TIME>> sort centers: " << float(std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count()) / 1000.0f << "\n"; 
