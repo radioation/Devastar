@@ -24,7 +24,7 @@ float markerLength = 0.010f; // not important either.
 
 
 // create aruco objects
-cv::aruco::Dictionary dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_50);
+cv::aruco::Dictionary dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_250);
 cv::aruco::DetectorParameters detectorParams = cv::aruco::DetectorParameters();
 cv::aruco::CharucoBoard charucoBoard(cv::Size(xSquares, ySquares), squareLength, markerLength, dictionary);
 
@@ -44,31 +44,28 @@ bool processFrame(cv::Mat image,
     cv::Mat imageCopy;
     image.copyTo(imageCopy);
 
-    std::cout << "A" << std::endl;
     // detect charuco board
     detector.detectBoard(image, currentCharucoCorners, currentCharucoIds);
 
     // draw corners on image
-    std::cout << "B" << std::endl;
     if (currentCharucoCorners.total() > 0) {
         cv::aruco::drawDetectedCornersCharuco(imageCopy, currentCharucoCorners, currentCharucoIds);
     }
-    std::cout << "C" << std::endl;
-    cv::putText(imageCopy, "Press 'a' to add current frame.",
-            cv::Point(12, 20), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 0), 1);
-    cv::putText(imageCopy, "Press 'c' to calibrate and exit.",
-            cv::Point(12, 40), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 0), 1);
-    cv::putText(imageCopy, "Press 'ESC to quit without calibrating.",
-            cv::Point(12, 60), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 0), 1);
+    std::stringstream ss; 
+    ss << "Press 'A' to add current frame. Total: " << allImgs.size();
+    cv::rectangle(imageCopy, cv::Point( 7, 0 ), cv::Point( 600, 65 ), cv::Scalar(0, 0, 0), -1.0 );
+    cv::putText(imageCopy, ss.str(),
+            cv::Point(12, 20), cv::FONT_HERSHEY_SIMPLEX, 0.75, cv::Scalar(0, 255, 255), 2);
+    cv::putText(imageCopy, "Press 'C' to calibrate and exit.",                    
+            cv::Point(12, 40), cv::FONT_HERSHEY_SIMPLEX, 0.75, cv::Scalar(0, 255, 255), 2);
+    cv::putText(imageCopy, "Press 'ESC' to quit without calibrating.",            
+            cv::Point(12, 60), cv::FONT_HERSHEY_SIMPLEX, 0.75, cv::Scalar(0, 255, 255), 2);
 
-    std::cout << "D" << std::endl;
     imshow("Calibrator", imageCopy);
     // Match image points
-    std::cout << "E" << std::endl;
     if( currentCharucoCorners.total() > 3 ) {
         charucoBoard.matchImagePoints(currentCharucoCorners, currentCharucoIds, currentObjectPoints, currentImagePoints);
 
-        std::cout << "F" << std::endl;
         if(currentImagePoints.empty() || currentObjectPoints.empty()) {
             std::cout << "Point matching failed, try again." << std::endl;
             return false;
@@ -183,7 +180,6 @@ int main( int argc, char* argv[] )
             cv::Mat currentCharucoIds;
             inputVideo.retrieve(image);
             if( !image.empty() ) {
-                cv::imshow("TEST", image );
 
                 bool retProcess = processFrame( image, allCharucoCorners, allCharucoIds, allImgs,
                         currentObjectPoints, currentImagePoints, currentCharucoCorners, currentCharucoIds );
