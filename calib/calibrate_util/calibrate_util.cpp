@@ -2,26 +2,86 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/aruco/charuco.hpp>
 #include <boost/program_options.hpp>
+//#include <boost/filesystem.hpp>
+//namespace fs = boost::filesystem;
+#include <filesystem>
+namespace fs = std::filesystem;
+
 
 #include <iostream>
 
 namespace po = boost::program_options;
 
+
+int xSquares = 14;
+int ySquares = 12;
+
+int imageWidth = 640;
+int imageHeight = 480;
+
+float squareLength = 0.015f; // not super important, won't affect actual calculations
+float markerLength = 0.010f; // not important either.
+
+
+// create aruco objects
+cv::aruco::Dictionary dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_50);
+cv::aruco::DetectorParameters detectorParams = cv::aruco::DetectorParameters();
+cv::aruco::CharucoBoard charucoBoard(cv::Size(xSquares, ySquares), squareLength, markerLength, dictionary);
+
+cv::aruco::CharucoParameters charucoParams;
+cv::aruco::CharucoDetector detector(charucoBoard, charucoParams, detectorParams);
+
+
+bool processFrame(cv::Mat image,
+        std::vector< cv::Mat >& allCharucoCorners,
+        std::vector< cv::Mat >& allCharucoIds,
+        std::vector< cv::Mat >& allImgs,
+        std::vector<cv::Point3f>& currentObjectPoints,
+        std::vector<cv::Point2f>& currentImagePoints,
+        cv::Mat &currentCharucoCorners,
+        cv::Mat &currentCharucoIds
+        ) {
+    cv::Mat imageCopy;
+
+    std::vector< int > ids;
+    std::vector< std::vector< cv::Point2f > > corners, rejected;
+
+
+    // detect charuco board
+    detector.detectBoard(image, currentCharucoCorners, currentCharucoIds);
+
+    // draw markers on image
+    image.copyTo(imageCopy);
+    if (ids.size() > 0) {
+        cv::aruco::drawDetectedMarkers(imageCopy, corners);
+    }
+
+    if (currentCharucoCorners.total() > 0) {
+        cv::aruco::drawDetectedCornersCharuco(imageCopy, currentCharucoCorners, currentCharucoIds);
+    }
+    cv::putText(imageCopy, "Press 'a' to add current frame.",
+            cv::Point(12, 20), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 0), 1);
+    cv::putText(imageCopy, "Press 'c' to calibrate and exit.",
+            cv::Point(12, 40), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 0), 1);
+    cv::putText(imageCopy, "Press 'ESC to quit without calibrating.",
+            cv::Point(12, 60), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 0), 1);
+
+    imshow("Calibrator", imageCopy);
+    // Match image points
+    charucoBoard.matchImagePoints(currentCharucoCorners, currentCharucoIds, currentObjectPoints, currentImagePoints);
+
+    if(currentImagePoints.empty() || currentObjectPoints.empty()) {
+        std::cout << "Point matching failed, try again." << std::endl;
+        return false;
+    }
+    return true;
+}
+
 int main( int argc, char* argv[] )
 {
-    // setup board 
     bool useCamera = true;
     int calibrationFlags = 0;
     float aspectRatio = 1.0f;
-
-    int xSquares = 14;
-    int ySquares = 12;
-
-    int imageWidth = 1773;
-    int imageHeight = 1230;
-
-    float squareLength = 0.015f; // not super important, won't affect actual calculations
-    float markerLength = 0.010f; // not important either.
 
 
     // filesystem
@@ -82,16 +142,8 @@ int main( int argc, char* argv[] )
     } 
 
 
-
-    // create aruco objects
-    cv::aruco::Dictionary dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_50);
-    cv::aruco::DetectorParameters detectorParams = cv::aruco::DetectorParameters();
-    cv::aruco::CharucoBoard charucoBoard(cv::Size(xSquares, ySquares), squareLength, markerLength, dictionary);
     charucoBoard.setLegacyPattern(true); // OpenCV is free, so tolerate interface changes.
-
-    cv::aruco::CharucoParameters charucoParams;
     charucoParams.tryRefineMarkers = true;
-    cv::aruco::CharucoDetector detector(charucoBoard, charucoParams, detectorParams);
 
 
     // make calibration variables
@@ -103,52 +155,26 @@ int main( int argc, char* argv[] )
     std::vector< std::vector< cv::Point3f > > allObjectPoints;
     cv::Size imgSize;
 
-    // get camera 
-    cv::VideoCapture inputVideo; 
-    inputVideo.open(0); 
-    inputVideo.set( cv::CAP_PROP_FRAME_WIDTH,  640);
-    inputVideo.set( cv::CAP_PROP_FRAME_HEIGHT, 480);
-
 
 
     // start grabbing images
     if( useCamera ) {
+        // get camera 
+        cv::VideoCapture inputVideo; 
+        inputVideo.open(0); 
+        inputVideo.set( cv::CAP_PROP_FRAME_WIDTH,  imageWidth);
+        inputVideo.set( cv::CAP_PROP_FRAME_HEIGHT, imageHeight);
         while (inputVideo.grab()) {
-            cv::Mat image, imageCopy;
-            inputVideo.retrieve(image);
-
-            std::vector< int > ids;
-            std::vector< std::vector< cv::Point2f > > corners, rejected;
-            
+            cv::Mat image;
             std::vector<cv::Point3f> currentObjectPoints;
             std::vector<cv::Point2f> currentImagePoints;
-
-            
-            cv::Mat currentCharucoCorners, currentCharucoIds;
-
-            // detect charuco board
-            detector.detectBoard(image, currentCharucoCorners, currentCharucoIds);
-
+            cv::Mat currentCharucoCorners;
+            cv::Mat currentCharucoIds;
+            inputVideo.retrieve(image);
+            bool retProcess = processFrame( image, allCharucoCorners, allCharucoIds, allImgs,
+                    currentObjectPoints, currentImagePoints, currentCharucoCorners, currentCharucoIds );
 
 
-            // draw markers on image
-            image.copyTo(imageCopy);
-            if (ids.size() > 0) {
-                cv::aruco::drawDetectedMarkers(imageCopy, corners);
-            }
-
-            if (currentCharucoCorners.total() > 0) {
-                cv::aruco::drawDetectedCornersCharuco(imageCopy, currentCharucoCorners, currentCharucoIds);
-            }
-
-            cv::putText(imageCopy, "Press 'a' to add current frame.",
-                    cv::Point(12, 20), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 0), 1);
-            cv::putText(imageCopy, "Press 'c' to calibrate and exit.",
-                    cv::Point(12, 40), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 0), 1);
-            cv::putText(imageCopy, "Press 'ESC to quit without calibrating.",
-                    cv::Point(12, 60), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 0), 1);
-
-            imshow("Calibrator", imageCopy);
             char key = (char)cv::waitKey(1);
             if (key == 27 ){
                 std::cout << "Quit!" << std::endl;
@@ -157,15 +183,7 @@ int main( int argc, char* argv[] )
             if (key == 'c' ) {
                 break;
             }
-            if (key == 'a' && ids.size() > 0) {
-                // Match image points
-                charucoBoard.matchImagePoints(currentCharucoCorners, currentCharucoIds, currentObjectPoints, currentImagePoints);
-
-                if(currentImagePoints.empty() || currentObjectPoints.empty()) {
-                    std::cout << "Point matching failed, try again." << std::endl;
-                    continue;
-                }
-
+            if (key == 'a' && retProcess ) {
                 std::cout << "Frame Added" << std::endl;
 
                 allCharucoCorners.push_back(currentCharucoCorners);
@@ -180,6 +198,27 @@ int main( int argc, char* argv[] )
         }
     } else {
         // iterate images in dir
+        for( fs::directory_iterator iter( imageDir ); iter != fs::directory_iterator(); ++ iter ) {
+            std::vector<cv::Point3f> currentObjectPoints;
+            std::vector<cv::Point2f> currentImagePoints;
+            cv::Mat currentCharucoCorners;
+            cv::Mat currentCharucoIds;
+            cv::Mat image = cv::imread( iter->path().string() );
+            bool retProcess = processFrame( image, allCharucoCorners, allCharucoIds, allImgs,
+                    currentObjectPoints, currentImagePoints, currentCharucoCorners, currentCharucoIds );
+            if( retProcess ) {
+                std::cout << "Frame Added" << std::endl;
+
+                allCharucoCorners.push_back(currentCharucoCorners);
+                allCharucoIds.push_back(currentCharucoIds);
+                allImagePoints.push_back(currentImagePoints);
+                allObjectPoints.push_back(currentObjectPoints);
+
+
+                allImgs.push_back(image);
+                imgSize = image.size();
+            }
+        }
     }
 
 
@@ -198,8 +237,8 @@ int main( int argc, char* argv[] )
 
     // Calibrate camera using ChArUco
     double repError = calibrateCamera(allObjectPoints, allImagePoints, imgSize, cameraMatrix, distCoeffs,
-                                      cv::noArray(), cv::noArray(), cv::noArray(), cv::noArray(), cv::noArray(), calibrationFlags);
-    
+            cv::noArray(), cv::noArray(), cv::noArray(), cv::noArray(), cv::noArray(), calibrationFlags);
+
 
 
 
