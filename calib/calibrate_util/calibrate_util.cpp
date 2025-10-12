@@ -42,23 +42,18 @@ bool processFrame(cv::Mat image,
         cv::Mat &currentCharucoIds
         ) {
     cv::Mat imageCopy;
+    image.copyTo(imageCopy);
 
-    std::vector< int > ids;
-    std::vector< std::vector< cv::Point2f > > corners, rejected;
-
-
+    std::cout << "A" << std::endl;
     // detect charuco board
     detector.detectBoard(image, currentCharucoCorners, currentCharucoIds);
 
-    // draw markers on image
-    image.copyTo(imageCopy);
-    if (ids.size() > 0) {
-        cv::aruco::drawDetectedMarkers(imageCopy, corners);
-    }
-
+    // draw corners on image
+    std::cout << "B" << std::endl;
     if (currentCharucoCorners.total() > 0) {
         cv::aruco::drawDetectedCornersCharuco(imageCopy, currentCharucoCorners, currentCharucoIds);
     }
+    std::cout << "C" << std::endl;
     cv::putText(imageCopy, "Press 'a' to add current frame.",
             cv::Point(12, 20), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 0), 1);
     cv::putText(imageCopy, "Press 'c' to calibrate and exit.",
@@ -66,15 +61,21 @@ bool processFrame(cv::Mat image,
     cv::putText(imageCopy, "Press 'ESC to quit without calibrating.",
             cv::Point(12, 60), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 0), 1);
 
+    std::cout << "D" << std::endl;
     imshow("Calibrator", imageCopy);
     // Match image points
-    charucoBoard.matchImagePoints(currentCharucoCorners, currentCharucoIds, currentObjectPoints, currentImagePoints);
+    std::cout << "E" << std::endl;
+    if( currentCharucoCorners.total() > 3 ) {
+        charucoBoard.matchImagePoints(currentCharucoCorners, currentCharucoIds, currentObjectPoints, currentImagePoints);
 
-    if(currentImagePoints.empty() || currentObjectPoints.empty()) {
-        std::cout << "Point matching failed, try again." << std::endl;
-        return false;
+        std::cout << "F" << std::endl;
+        if(currentImagePoints.empty() || currentObjectPoints.empty()) {
+            std::cout << "Point matching failed, try again." << std::endl;
+            return false;
+        }
+        return true;
     }
-    return true;
+    return false;
 }
 
 int main( int argc, char* argv[] )
@@ -181,31 +182,35 @@ int main( int argc, char* argv[] )
             cv::Mat currentCharucoCorners;
             cv::Mat currentCharucoIds;
             inputVideo.retrieve(image);
-            bool retProcess = processFrame( image, allCharucoCorners, allCharucoIds, allImgs,
-                    currentObjectPoints, currentImagePoints, currentCharucoCorners, currentCharucoIds );
+            if( !image.empty() ) {
+                cv::imshow("TEST", image );
+
+                bool retProcess = processFrame( image, allCharucoCorners, allCharucoIds, allImgs,
+                        currentObjectPoints, currentImagePoints, currentCharucoCorners, currentCharucoIds );
 
 
-            char key = (char)cv::waitKey(1);
-            if (key == 27 ){
-                std::cout << "Quit!" << std::endl;
-                exit(0);
-            }
-            if (key == 'c' ) {
-                break;
-            }
-            if (key == 'a' && retProcess ) {
-                std::cout << "Frame Added" << std::endl;
+                char key = (char)cv::waitKey(1);
+                if (key == 27 ){
+                    std::cout << "Quit!" << std::endl;
+                    exit(0);
+                }
+                if (key == 'c' ) {
+                    break;
+                }
+                if (key == 'a' && retProcess ) {
+                    std::cout << "Frame Added" << std::endl;
 
-                allCharucoCorners.push_back(currentCharucoCorners);
-                allCharucoIds.push_back(currentCharucoIds);
-                allImagePoints.push_back(currentImagePoints);
-                allObjectPoints.push_back(currentObjectPoints);
+                    allCharucoCorners.push_back(currentCharucoCorners);
+                    allCharucoIds.push_back(currentCharucoIds);
+                    allImagePoints.push_back(currentImagePoints);
+                    allObjectPoints.push_back(currentObjectPoints);
 
 
-                allImgs.push_back(image);
-                imgSize = image.size();
+                    allImgs.push_back(image);
+                    imgSize = image.size();
 
-                // save image?
+                    // save image?
+                }
             }
         }
     } else {
@@ -272,7 +277,7 @@ int main( int argc, char* argv[] )
                 exit(0);
             }
         }
-        
+
     }
 
 
