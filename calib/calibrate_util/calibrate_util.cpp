@@ -149,8 +149,18 @@ int main( int argc, char* argv[] )
         std::cerr << desc << std::endl;
     } 
 
+    if( !fs::exists( imageDir ) ) {
+        fs::create_directory( imageDir );
+    }
 
-    charucoBoard.setLegacyPattern(true); // OpenCV is free, so tolerate interface changes.
+    if( !fs::is_directory( imageDir ) ) {
+        // no can do
+        std::cerr << "ERROR: '" << imageDir << "' is not a directory!" << std::endl;
+        return -1;
+    }
+
+    // OpenCV is free, so tolerate interface changes.
+    charucoBoard.setLegacyPattern(true); 
     charucoParams.tryRefineMarkers = true;
 
 
@@ -206,6 +216,12 @@ int main( int argc, char* argv[] )
                     imgSize = image.size();
 
                     // save image?
+                    if( saveImages ) {
+                        
+                        std::stringstream ss;
+                        ss << "./" << imageDir << "/cal_" << allImgs.size() << ".png";
+                        cv::imwrite( ss.str(), image );
+                    }
                 }
             }
         }
