@@ -80,6 +80,8 @@ bool processFrame(cv::Mat image,
 int main( int argc, char* argv[] )
 {
     bool useCamera = true;
+    bool doUndistort = false;
+    bool saveImages = false;
     int calibrationFlags = 0;
     float aspectRatio = 1.0f;
 
@@ -98,15 +100,14 @@ int main( int argc, char* argv[] )
         ("height,h", po::value<int>(), "height of output image")
         ("filename,f", po::value<std::string>(), "output calibration filename")
         ("images,i", po::value<std::string>(), "Directory of calibration images")
-        ("use_images,u", "Use calibration images from (-i) images folder")
+        ("use_images,I", "Use calibration images from (-i) images folder")
+        ("save_images,s", "Save calibration images from camera")
+        ("undistort,u", "Undistort images after calibration")
         ;
     po::variables_map vm;
     try
     {
         po::store(po::parse_command_line(argc, argv, desc), vm);
-        if (vm.count("use_images")){
-            useCamera = false;
-        }
         if (vm.count("x_squares")) {
             xSquares = vm["x_squares"].as<int>();
         }
@@ -130,6 +131,15 @@ int main( int argc, char* argv[] )
         }
         if (vm.count("images")) {
             imageDir = vm["images"].as<std::string>();
+        }
+        if (vm.count("use_images")){
+            useCamera = false;
+        }
+        if (vm.count("save_images")){
+            saveImages = true;
+        }
+        if (vm.count("undistort")){
+            doUndistort = true;
         }
 
         po::notify(vm); // throws on error, so do after help in case
@@ -194,6 +204,8 @@ int main( int argc, char* argv[] )
 
                 allImgs.push_back(image);
                 imgSize = image.size();
+
+                // save image?
             }
         }
     } else {
@@ -241,12 +253,20 @@ int main( int argc, char* argv[] )
 
 
 
-
-
     std::cout << "Rep Error: " << repError << std::endl;
 
     cv::FileStorage fs( calibFilename, cv::FileStorage::WRITE );
     fs << "camera_matrix" << cameraMatrix;
     fs << "dist_coeffs" << distCoeffs;
+
+    if( doUndistort ) {
+        for( const auto& iter : allImgs ) {
+            // do undistort 
+           
+            // show it
+        }
+        
+    }
+
 
 }
