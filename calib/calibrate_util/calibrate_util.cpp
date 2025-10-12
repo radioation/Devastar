@@ -262,8 +262,15 @@ int main( int argc, char* argv[] )
     if( doUndistort ) {
         for( const auto& iter : allImgs ) {
             // do undistort 
-           
+            cv::Mat outImage;
+            cv::undistort(iter, outImage, cameraMatrix, distCoeffs);
             // show it
+            cv::imshow("Undistorted Image", outImage);
+            char key = (char)cv::waitKey(0);
+            if (key == 27 ){
+                std::cout << "Quit!" << std::endl;
+                exit(0);
+            }
         }
         
     }
