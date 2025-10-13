@@ -5,7 +5,8 @@ project(CalibrateUtil)
 
 # setup dependencies
 find_package( OpenCV REQUIRED )
-include_directories( ${OpenCV_INCLUDE_DIR} ${Boost_INCLUDE_DIR} )
+#include_directories( ${OpenCV_INCLUDE_DIR} ${Boost_INCLUDE_DIR} )
+include_directories( ${OpenCV_INCLUDE_DIR} )
 find_package( Boost COMPONENTS program_options REQUIRED )
 
 # add the executable
