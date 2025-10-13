@@ -104,10 +104,12 @@ int main( int argc, char* argv[] )
     cv::Size imgSize;
 
     // get camera 
-    cv::VideoCapture inputVideo; 
-    inputVideo.open(0); 
-    inputVideo.set( cv::CAP_PROP_FRAME_WIDTH,  640);
-    inputVideo.set( cv::CAP_PROP_FRAME_HEIGHT, 480);
+    //cv::VideoCapture inputVideo; 
+    cv::VideoCapture inputVideo("libcamerasrc ! video/x-raw,  width=(int)640, height=(int)480, framerate=(fraction)60/1, format=YUY2 ! videoconvert ! videoscale ! appsink", cv::CAP_GSTREAMER);
+
+    //inputVideo.open(0); 
+    //inputVideo.set( cv::CAP_PROP_FRAME_WIDTH,  640);
+    //inputVideo.set( cv::CAP_PROP_FRAME_HEIGHT, 480);
 
 
 
